@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>淨土宗竹山念佛會 20260930 幹部會議彙整</title>
+  <style>
+    :root {
+      --base-font-size: 17px;
+      --bg-color: #f7f5f0;
+      --card-bg: #ffffff;
+      --primary-color: #7c2d12;
+      --accent-color: #b45309;
+      --text-main: #292524;
+      --text-muted: #57534e;
+      --border-color: #e7e5e4;
+      --tag-fixed: #15803d;
+      --tag-draft: #b45309;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: var(--base-font-size);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.8;
+      padding-bottom: 80px;
+    }
+
+    /* 頂部固定字體控制條 */
+    .font-control-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background-color: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(5px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .font-control-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-font {
+      background: #f5f5f4;
+      border: 1px solid #d6d3d1;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .btn-font:active {
+      background: #e7e5e4;
+    }
+
+    /* 內容容器 */
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* 頂部主標題 */
+    header {
+      text-align: center;
+      margin: 16px 0 24px 0;
+      padding: 16px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      border-left: 6px solid var(--primary-color);
+    }
+
+    header h1 {
+      font-size: 1.35rem;
+      color: var(--primary-color);
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    header p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    /* 區塊卡片 */
+    .section-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border-color);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #f5f5f4;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+      gap: 8px;
+    }
+
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      line-height: 1.4;
+    }
+
+    /* 狀態標籤 */
+    .status-badge {
+      display: inline-block;
+      white-space: nowrap;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      line-height: 1.5;
+    }
+
+    .badge-fixed {
+      background-color: #dcfce7;
+      color: var(--tag-fixed);
+      border: 1px solid #bbf7d0;
+    }
+
+    .badge-draft {
+      background-color: #fef3c7;
+      color: var(--tag-draft);
+      border: 1px solid #fde68a;
+    }
+
+    /* 內文與列表排版 */
+    .sub-item {
+      margin-bottom: 14px;
+    }
+
+    .sub-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .sub-title {
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 1.02rem;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: baseline;
+    }
+
+    .sub-title::before {
+      content: "▪";
+      color: var(--accent-color);
+      margin-right: 6px;
+      font-size: 1.1rem;
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 18px;
+    }
+
+    li {
+      position: relative;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    li::before {
+      content: "▫";
+      position: absolute;
+      left: -14px;
+      color: var(--text-muted);
+    }
+
+    .highlight {
+      font-weight: 600;
+      color: var(--accent-color);
+    }
+
+    .note-box {
+      background: #fafaf9;
+      border-left: 3px solid var(--accent-color);
+      padding: 8px 12px;
+      margin-top: 6px;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      border-radius: 0 6px 6px 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px 16px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 字體調整面板 -->
+  <div class="font-control-bar">
+    <div class="font-control-title">竹山念佛會 會議彙整</div>
+    <div class="btn-group">
+      <button class="btn-font" onclick="adjustFont(-1)">A-</button>
+      <button class="btn-font" onclick="resetFont()">預設</button>
+      <button class="btn-font" onclick="adjustFont(1)">A+</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>淨土宗竹山念佛會</h1>
+      <p>2026年9月30日 幹部會議決議與研議方案</p>
+    </header>
+
+    <!-- 一、道場發展客觀現實與「雙軌並進」方針 -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2 class="section-title">一、道場發展客觀現實與「雙軌並進」方針</h2>
+        <span class="status-badge badge-fixed">已確立方向</span>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">認清竹山人口結構現況</div>
+        <ul>
+          <li>目前竹山念佛會蓮友以 60 歲以上長者居多，50 歲以下極為少見。</li>
+          <li>在地高齡化嚴重且年輕人口外移，未來一、二十年長者人口逐漸減少為無可避免之客觀現實，道場推廣必須立足於此背景。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">確立雙軌並進調整方針</div>
+        <ul>
+          <li><span class="highlight">軌道一（對內關懷）：</span>落實對現有蓮友的陪伴與護念，維繫彼此長久以來的同修情誼。</li>
+          <li><span class="highlight">軌道二（對外開拓）：</span>積極把握外在各項因緣，讓更多有緣大眾有機會認識並接觸念佛。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 二、週四共修出席狀況與法情關懷 -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2 class="section-title">二、週四共修出席狀況與法情關懷</h2>
+        <span class="status-badge badge-fixed">已確立方向</span>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">現況關懷</div>
+        <ul>
+          <li>近期週四念佛出席狀況較之前稍有減少，有些熟面孔較少看到。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">關懷對策</div>
+        <ul>
+          <li>針對以前常來、近期未見出席之蓮友，全體幹部需主動多加留意與關懷。</li>
+          <li>深入了解其身心狀況或家中實況，適時給予關心與協助。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 三、外出活動分組與同行共識 -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2 class="section-title">三、外出活動分組與同行共識</h2>
+        <span class="status-badge badge-fixed">10/8起試辦</span>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">人員編制</div>
+        <ul>
+          <li>外出活動以「每 10 人為一組」，每組安排一位專責組長。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">乘車與著裝叮嚀</div>
+        <ul>
+          <li>在遊覽車上時，請大家先將志工背心穿好，方便下車時整齊俐落、統一帶隊出發。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">上下車相互照應</div>
+        <ul>
+          <li><span class="highlight">上車時：</span>全員上車後，由組長於車上落實點名與人數清點。</li>
+          <li><span class="highlight">下車時：</span>請大家先在原地停留、排隊整齊，再由組長與幹部統一帶隊出發，維護團體威儀與長者安全。</li>
+        </ul>
+      </div>
+      <div class="note-box">
+        試辦時程：自 2026 年 10 月 8 日 起正式試辦進行。
+      </div>
+    </div>
+
+    <!-- 四、每日迴向名單與做七家屬牌位管理 -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2 class="section-title">四、每日迴向名單與做七家屬牌位管理</h2>
+        <span class="status-badge badge-draft">概念型討論案（未定案）</span>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">做七家屬之原則</div>
+        <ul>
+          <li>凡有做七之亡者，常住於四十九天內持續為其唱名每日迴向，並於佛前供奉牌位。</li>
+          <li>家屬若於滿七後持續前來，為其延展迴向至百日；百日後若持續前來，再延展至對年。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">司儀宣導與櫃檯報到落實</div>
+        <ul>
+          <li>法會現場由司儀統一宣導，提醒家屬來到念佛會必須先至櫃檯報到，由櫃檯人員核對與確認迴向名單，確保名單無疏漏。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">出外助念攜帶「做七小卡」</div>
+        <ul>
+          <li>外出前往喪家助念時，需攜帶「做七小卡」。</li>
+          <li>於助念迴向完畢後，親自交付給家屬，並當面誠懇叮嚀家屬要回來念佛會參與做七。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">缺席觀察、提醒與動態除名機制</div>
+        <ul>
+          <li><span class="highlight">做七期間（49天）：</span>若家屬第一週未到，由幹部主動提醒關心。</li>
+          <li><span class="highlight">滿七後（百日/對年）：</span>缺席第一週列入觀察；第二週仍未到則進行提醒關懷；第三週仍未到，則自電腦每日唱名名單中移除（暫停每日唱名）。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">重新恢復列印之門檻</div>
+        <ul>
+          <li>已除名之家屬若日後臨時回會，當日以「手寫方式」補上當日法會迴向。</li>
+          <li>家屬需「連續兩週」均親自回會出席，方重新建檔轉回電腦名單，恢復常態每日迴向。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">往生堂牌位懸掛與調整機制</div>
+        <ul>
+          <li>做七期間（49天內）：超薦牌位立於佛前。</li>
+          <li>滿七之後（百日、對年）：牌位改張貼於往生堂（長年）牆上。</li>
+          <li>若家屬滿七後不再前來，則移至往生堂（當月）牆上處理。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">未配合做七家屬之專案處理</div>
+        <ul>
+          <li>家屬若來申請助念，但因故無法配合回會做七而放棄申請者。</li>
+          <li>為能利益亡者，雖不派班前往助念，但仍為其恭立超薦牌於往生堂（當月）牆上，不於佛前立牌，亦不另行每日唱名迴向。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 五、助念開示人員培訓與申請門檻調整 -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2 class="section-title">五、助念開示人員培訓與申請門檻調整</h2>
+        <span class="status-badge badge-draft">概念型討論案（未定案）</span>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">培訓開示人員之核心精神與前置條件</div>
+        <ul>
+          <li>幹部應本於「勇於承擔、主動承擔、發心弘法利生與利益大眾」之精神擔任開示人員。</li>
+          <li>講稿知見觀念必須確認完全符合正知正見，不可有偏差。</li>
+          <li>必須先將講稿整理審核完備、具備合格人員後，念佛會方具備放寬助念申請門檻之基礎。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">階梯式助念申請概念模式</div>
+        <ul>
+          <li><span class="highlight">居士出班結緣：</span>符合基本條件前來申請者，安排一般居士前往結緣助念一堂。</li>
+          <li><span class="highlight">恭請法師出班：</span>家屬積極且明確承諾配合回會做七，特別恭請法師前往開示與領眾助念。</li>
+          <li><span class="highlight">增派多班條件：</span>欲增派第二班或多班助念，同樣須以「承諾回會做七」為必備條件。</li>
+        </ul>
+      </div>
+      <div class="sub-item">
+        <div class="sub-title">口頭應對內容之完善</div>
+        <ul>
+          <li>受理申請時，針對「法師前往」或「居士結緣」之應對話術需更精細完善，避免讓家屬感受出分別心或待遇不公。</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer>
+      淨土宗竹山念佛會 · 南投縣竹山鎮大仁路208號
+    </footer>
+  </div>
+
+  <script>
+    let currentFontSize = 17;
+
+    function applyFontSize(size) {
+      document.documentElement.style.setProperty('--base-font-size', size + 'px');
+      localStorage.setItem('zhushan_font_size', size);
+    }
+
+    function adjustFont(step) {
+      currentFontSize = Math.min(Math.max(currentFontSize + step, 15), 24);
+      applyFontSize(currentFontSize);
+    }
+
+    function resetFont() {
+      currentFontSize = 17;
+      applyFontSize(currentFontSize);
+    }
+
+    // 載入使用者偏好
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('zhushan_font_size');
+      if (saved) {
+        currentFontSize = parseInt(saved, 10);
+        applyFontSize(currentFontSize);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# Only the reviewed public site and its repository documentation are uploaded.
+*
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/docs/
+!/docs/**
