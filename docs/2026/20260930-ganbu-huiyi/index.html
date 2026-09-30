@@ -26,6 +26,7 @@
 
     html {
       font-size: var(--base-font-size);
+      overflow-wrap: anywhere;
     }
 
     body {
@@ -34,6 +35,11 @@
       color: var(--text-main);
       line-height: 1.8;
       padding-bottom: 80px;
+    }
+
+    /* 雙指調整字級，保留單指上下捲動。 */
+    .reflow-zoom-enabled body {
+      touch-action: pan-y;
     }
 
     /* 頂部固定字體控制條 */
@@ -47,17 +53,21 @@
       padding: 10px 16px;
       display: flex;
       justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 16px;
       align-items: center;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
     }
 
     .font-control-title {
-      font-size: 0.95rem;
+      font-size: 0.95em;
       font-weight: 600;
       color: var(--primary-color);
     }
 
     .btn-group {
+      flex: 0 0 auto;
       display: flex;
       gap: 8px;
     }
@@ -67,7 +77,7 @@
       border: 1px solid #d6d3d1;
       padding: 4px 12px;
       border-radius: 6px;
-      font-size: 0.9rem;
+      font-size: 0.9em;
       color: var(--text-main);
       font-weight: 600;
       cursor: pointer;
@@ -80,6 +90,7 @@
 
     /* 內容容器 */
     .container {
+      width: 100%;
       max-width: 760px;
       margin: 0 auto;
       padding: 16px;
@@ -122,6 +133,7 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      flex-wrap: wrap;
       border-bottom: 2px solid #f5f5f4;
       padding-bottom: 10px;
       margin-bottom: 14px;
@@ -129,6 +141,8 @@
     }
 
     .section-title {
+      flex: 1 1 12rem;
+      min-width: 0;
       font-size: 1.15rem;
       font-weight: 700;
       color: var(--primary-color);
@@ -138,12 +152,19 @@
     /* 狀態標籤 */
     .status-badge {
       display: inline-block;
-      white-space: nowrap;
+      max-width: 100%;
+      white-space: normal;
       font-size: 0.75rem;
       font-weight: 600;
       padding: 2px 8px;
       border-radius: 4px;
       line-height: 1.5;
+    }
+
+    .zoom-hint {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
     }
 
     .badge-fixed {
@@ -230,9 +251,9 @@
   <div class="font-control-bar">
     <div class="font-control-title">竹山念佛會 會議彙整</div>
     <div class="btn-group">
-      <button class="btn-font" onclick="adjustFont(-1)">A-</button>
-      <button class="btn-font" onclick="resetFont()">預設</button>
-      <button class="btn-font" onclick="adjustFont(1)">A+</button>
+      <button type="button" class="btn-font" aria-label="縮小字體" onclick="adjustFont(-1)">A-</button>
+      <button type="button" class="btn-font" aria-label="恢復預設字體" onclick="resetFont()">預設</button>
+      <button type="button" class="btn-font" aria-label="放大字體" onclick="adjustFont(1)">A+</button>
     </div>
   </div>
 
@@ -240,6 +261,7 @@
     <header>
       <h1>淨土宗竹山念佛會</h1>
       <p>2026年9月30日 幹部會議決議與研議方案</p>
+      <p class="zoom-hint">雙指張開或捏合可調整字體，文字會自動換行。</p>
     </header>
 
     <!-- 一、道場發展客觀現實與「雙軌並進」方針 -->
@@ -408,30 +430,139 @@
   </div>
 
   <script>
-    let currentFontSize = 17;
+    const DEFAULT_FONT_SIZE = 17;
+    const MIN_FONT_SIZE = 15;
+    const MAX_FONT_SIZE = 36;
+    const FONT_STORAGE_KEY = 'zhushan_font_size';
+    let currentFontSize = DEFAULT_FONT_SIZE;
+    let pinchGesture = null;
+    let pinchFrame = 0;
+    let pendingFontSize = null;
 
-    function applyFontSize(size) {
-      document.documentElement.style.setProperty('--base-font-size', size + 'px');
-      localStorage.setItem('zhushan_font_size', size);
+    function clampFontSize(size) {
+      const value = Number(size);
+      return Number.isFinite(value)
+        ? Math.round(Math.min(Math.max(value, MIN_FONT_SIZE), MAX_FONT_SIZE) * 10) / 10
+        : DEFAULT_FONT_SIZE;
+    }
+
+    function saveFontSize() {
+      try {
+        localStorage.setItem(FONT_STORAGE_KEY, String(currentFontSize));
+      } catch (_) {
+        // 字級調整在不允許儲存偏好的瀏覽器中仍可使用。
+      }
+    }
+
+    function applyFontSize(size, persist = true) {
+      currentFontSize = clampFontSize(size);
+      document.documentElement.style.setProperty('--base-font-size', currentFontSize + 'px');
+      if (persist) saveFontSize();
     }
 
     function adjustFont(step) {
-      currentFontSize = Math.min(Math.max(currentFontSize + step, 15), 24);
-      applyFontSize(currentFontSize);
+      finishPinch();
+      applyFontSize(currentFontSize + step);
     }
 
     function resetFont() {
-      currentFontSize = 17;
-      applyFontSize(currentFontSize);
+      finishPinch();
+      applyFontSize(DEFAULT_FONT_SIZE);
     }
 
-    // 載入使用者偏好
-    window.addEventListener('DOMContentLoaded', () => {
-      const saved = localStorage.getItem('zhushan_font_size');
-      if (saved) {
-        currentFontSize = parseInt(saved, 10);
-        applyFontSize(currentFontSize);
+    function touchDistance(first, second) {
+      return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+    }
+
+    function applyPinchFrame() {
+      if (!pinchGesture || pendingFontSize === null) return;
+      applyFontSize(pendingFontSize, false);
+
+      // 文字重排後，讓手指附近的閱讀位置留在原來的高度。
+      const { anchor, anchorRatio, anchorY } = pinchGesture;
+      if (anchor && anchor.isConnected) {
+        const rect = anchor.getBoundingClientRect();
+        const shift = rect.top + rect.height * anchorRatio - anchorY;
+        if (Math.abs(shift) > 1) window.scrollBy(0, shift);
       }
+    }
+
+    function finishPinch() {
+      if (!pinchGesture) return;
+      if (pinchFrame) {
+        cancelAnimationFrame(pinchFrame);
+        pinchFrame = 0;
+      }
+      applyPinchFrame();
+      pinchGesture = null;
+      pendingFontSize = null;
+      saveFontSize();
+    }
+
+    function beginPinch(event) {
+      finishPinch();
+      if (event.touches.length !== 2) return;
+      const first = event.touches[0];
+      const second = event.touches[1];
+      const distance = touchDistance(first, second);
+      if (distance < 8) return;
+      if (event.cancelable) event.preventDefault();
+
+      const centerX = (first.clientX + second.clientX) / 2;
+      const centerY = (first.clientY + second.clientY) / 2;
+      const target = document.elementFromPoint(centerX, centerY);
+      const anchor = target && target.closest('li, p, h1, h2, .sub-title, .note-box, .section-card');
+      const rect = anchor && anchor.getBoundingClientRect();
+      pinchGesture = {
+        identifiers: [first.identifier, second.identifier],
+        startDistance: distance,
+        startFontSize: currentFontSize,
+        anchor,
+        anchorRatio: rect && rect.height > 0
+          ? Math.min(Math.max((centerY - rect.top) / rect.height, 0), 1) : 0,
+        anchorY: centerY
+      };
+    }
+
+    function movePinch(event) {
+      if (!pinchGesture) return;
+      if (event.touches.length !== 2) {
+        finishPinch();
+        return;
+      }
+      const touches = Array.from(event.touches);
+      const first = touches.find(touch => touch.identifier === pinchGesture.identifiers[0]);
+      const second = touches.find(touch => touch.identifier === pinchGesture.identifiers[1]);
+      if (!first || !second) {
+        finishPinch();
+        return;
+      }
+      if (event.cancelable) event.preventDefault();
+      pendingFontSize = clampFontSize(
+        pinchGesture.startFontSize * touchDistance(first, second) / pinchGesture.startDistance
+      );
+      if (!pinchFrame) {
+        pinchFrame = requestAnimationFrame(() => {
+          pinchFrame = 0;
+          applyPinchFrame();
+        });
+      }
+    }
+
+    document.addEventListener('touchstart', beginPinch, { passive: false });
+    document.addEventListener('touchmove', movePinch, { passive: false });
+    document.addEventListener('touchend', finishPinch, { passive: true });
+    document.addEventListener('touchcancel', finishPinch, { passive: true });
+    document.documentElement.classList.add('reflow-zoom-enabled');
+
+    window.addEventListener('DOMContentLoaded', () => {
+      let saved = null;
+      try {
+        saved = localStorage.getItem(FONT_STORAGE_KEY);
+      } catch (_) {
+        // 無法讀取偏好時使用預設字級。
+      }
+      applyFontSize(saved === null ? DEFAULT_FONT_SIZE : saved, false);
     });
   </script>
 </body>
