@@ -48,3 +48,8 @@ button:focus-visible,a:focus-visible{outline:3px solid #b15a38;outline-offset:4p
 .reader-bottom a{display:inline-flex;align-items:center;min-height:48px;padding:10px 22px;border:1px solid #d9cfc0;border-radius:12px;text-decoration:none;background:var(--paper);font-size:16px}
 @media(min-width:680px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.wrap{padding:42px 24px 80px}.reader-wrap{padding-top:24px}.manuscript-content{padding:34px 32px}}
 @media(prefers-reduced-motion:no-preference){.manuscript-card{transition:border-color .15s,box-shadow .15s}}
+
+.review-meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;font-size:.8rem;line-height:1.6;margin:0 0 14px}
+.review-status{display:inline-block;padding:3px 9px;border:1px solid #d9b989;border-radius:8px;background:#fff3dd;color:#79531d}
+.manuscript-version{color:var(--muted)}
+.provenance .review-meta{margin-top:12px}
