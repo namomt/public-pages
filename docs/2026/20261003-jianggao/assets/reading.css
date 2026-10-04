@@ -53,3 +53,7 @@ button:focus-visible,a:focus-visible{outline:3px solid #b15a38;outline-offset:4p
 .review-status{display:inline-block;padding:3px 9px;border:1px solid #d9b989;border-radius:8px;background:#fff3dd;color:#79531d}
 .manuscript-version{color:var(--muted)}
 .provenance .review-meta{margin-top:12px}
+
+.card-word-counts{display:flex;flex-direction:column;gap:2px;font-size:.85rem;line-height:1.7;color:var(--muted);margin:14px 0 0}
+.word-count-number{white-space:nowrap}
+.count-method{font-size:.85rem;color:var(--muted);margin:16px 0 0}
