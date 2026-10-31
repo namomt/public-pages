@@ -6,6 +6,7 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0d1728">
 <meta name="description" content="助念排班表">
+<meta name="roster-api" content="https://chant-roster-20261031.namoamitabhabuddha.chatgpt.site">
 <title>助念排班表</title>
 <style>
 :root{color-scheme:dark;--bg:#0d1728;--ink:#f1f5ff;--muted:#dde6f5;--line:rgba(220,234,255,.23);--accent:#b3d3ff;--soft:rgba(180,209,255,.13);--amber:#ffd995;--row-height:48px;--font-sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
@@ -97,6 +98,9 @@ dialog::backdrop{background:rgba(4,9,18,.62);backdrop-filter:blur(5px);-webkit-b
 .roster-fields{display:grid;gap:14px}
 .roster-field{display:grid;gap:6px;font-weight:650}
 .roster-field textarea{width:100%;min-height:82px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.05);font-size:17px;font-weight:400;line-height:1.5}
+.roster-field input{width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.05);font-size:17px;font-weight:400}
+.roster-auth{display:grid;gap:10px;margin:0 0 14px;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.04)}
+.roster-status{min-height:24px;margin:0 0 10px;color:var(--muted);font-size:14px}
 .roster-error{color:var(--amber);font-size:15px;margin:14px 0 0}
 .rule-list{margin:0;padding-left:21px;font-size:16px;line-height:1.8}
 .rule-list li+li{margin-top:12px}
@@ -161,14 +165,19 @@ noscript{display:block;margin:20px}
 </div></dialog>
 <dialog id="roster-dialog" aria-labelledby="roster-title"><div class="sheet">
 <div class="sheet-header"><h2 id="roster-title">A–D 組別名單</h2><button class="icon-button" type="button" data-close aria-label="關閉名單編輯"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
-<p class="roster-hint">每行一人，第一位為預設。名單保存在此瀏覽器。</p>
+<p class="roster-hint">每行一人，第一位為預設。名單由雲端共用。</p>
+<div id="roster-auth" class="roster-auth">
+<label class="roster-field" for="roster-password">管理密碼<input id="roster-password" type="password" autocomplete="current-password" placeholder="輸入後解鎖名單"></label>
+<button id="unlock-roster" class="secondary" type="button">解鎖編輯</button>
+</div>
+<p id="roster-status" class="roster-status" role="status" aria-live="polite"></p>
 <div class="roster-fields">
 <label class="roster-field" for="roster-A">A 組<textarea id="roster-A" rows="2" spellcheck="false"></textarea></label>
 <label class="roster-field" for="roster-B">B 組<textarea id="roster-B" rows="2" spellcheck="false"></textarea></label>
 <label class="roster-field" for="roster-C">C 組<textarea id="roster-C" rows="2" spellcheck="false"></textarea></label>
 <label class="roster-field" for="roster-D">D 組<textarea id="roster-D" rows="2" spellcheck="false"></textarea></label>
 </div><p id="roster-error" class="roster-error" role="alert" hidden></p>
-<button id="save-roster" class="primary" type="button">儲存名單</button>
+<button id="save-roster" class="primary" type="button" disabled>儲存名單</button>
 </div></dialog>
 <dialog id="rules-dialog" aria-labelledby="rules-title"><div class="sheet">
 <div class="sheet-header"><h2 id="rules-title">排班說明</h2><button class="icon-button" type="button" data-close aria-label="關閉說明"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
@@ -395,6 +404,56 @@ noscript{display:block;margin:20px}
   else root.ChantRoster = api;
 })(globalThis);
 </script>
+<script id="cloud-roster-engine">(function (root) {
+  'use strict';
+  const GROUPS = ['A', 'B', 'C', 'D'];
+  const DEFAULTS = { A:['淨耕','淨光'], B:['淨元','名淨'], C:['淨易','淨諦'], D:['淨寶','和淨'] };
+  const clean = value => [...new Set((Array.isArray(value) ? value : []).filter(name => typeof name === 'string').map(name => name.trim()).filter(Boolean))];
+  const normalizeGroups = value => Object.fromEntries(GROUPS.map(group => [group, clean(value?.[group])]));
+  const defaultGroups = () => Object.fromEntries(GROUPS.map(group => [group, [...DEFAULTS[group]]]));
+  const errorFor = (response, body) => {
+    const error = new Error(body?.message || `雲端名單錯誤（${response.status}）`);
+    error.status = response.status;
+    error.code = response.status === 401 ? 'unauthorized' : response.status === 409 ? 'conflict' : response.status === 429 ? 'rate-limit' : response.status === 503 ? 'unavailable' : 'http';
+    error.body = body;
+    return error;
+  };
+  function createClient(options = {}) {
+    const baseUrl = String(options.baseUrl || '').replace(/\/$/, '');
+    const fetchImpl = options.fetchImpl || root.fetch;
+    const timeoutMs = Number.isFinite(options.timeoutMs) ? Math.max(500, options.timeoutMs) : 5000;
+    const request = async (path, init = {}) => {
+      if (!baseUrl || typeof fetchImpl !== 'function') {
+        const error = new Error('尚未設定雲端名單服務。');
+        error.code = 'not-configured';
+        throw error;
+      }
+      let response;
+      let timer;
+      const controller = typeof root.AbortController === 'function' ? new root.AbortController() : null;
+      try {
+        if (controller && timeoutMs > 0) timer = (root.setTimeout || setTimeout)(() => controller.abort(), timeoutMs);
+        response = await fetchImpl(`${baseUrl}${path}`, { ...init, ...(controller ? { signal:controller.signal } : {}), headers:{ Accept:'application/json', ...(init.body ? {'Content-Type':'application/json'} : {}), ...(init.headers || {}) } });
+      }
+      catch (cause) { const error = new Error('無法連線名單服務。'); error.code = 'network'; error.cause = cause; throw error; }
+      finally { if (timer) (root.clearTimeout || clearTimeout)(timer); }
+      let body = null;
+      try { body = await response.json(); } catch { /* empty response */ }
+      if (!response.ok) throw errorFor(response, body);
+      return body;
+    };
+    return Object.freeze({
+      configured: Boolean(baseUrl && typeof fetchImpl === 'function'),
+      load:() => request('/api/roster'),
+      unlock:password => request('/api/roster/unlock', { method:'POST', headers:{ Authorization:`Bearer ${password}` }, body:JSON.stringify({}) }),
+      save:(groups, version, password) => request('/api/roster', { method:'PUT', headers:{ Authorization:`Bearer ${password}` }, body:JSON.stringify({ groups:normalizeGroups(groups), version }) })
+    });
+  }
+  const api = Object.freeze({ GROUPS, defaultGroups, normalizeGroups, createClient });
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.ChantCloudRoster = api;
+})(globalThis);
+</script>
 <script id="clipboard-engine">(function (root) {
   'use strict';
   function slotDisplay(slot, members = {}) {
@@ -515,7 +574,8 @@ noscript{display:block;margin:20px}
   const { plan, planInOrder, clock } = window.ChantScheduler;
   const { slotDisplay, groupSchedule, scheduleText, copyText, createTapTracker } = window.ChantClipboard;
   const { dateKey, dateFromKey, dateLabel, shiftDate, nowSelection, calendarCells, moveGroup } = window.ChantControls;
-  const { parseNames, defaultSelections, reconcileSelections, loadPresets, savePresets } = window.ChantRoster;
+  const { parseNames, defaultGroups, defaultSelections, reconcileSelections } = window.ChantRoster;
+  const cloudRoster = window.ChantCloudRoster;
   const get = id => document.getElementById(id);
   const rows = get('schedule-rows'), status = get('result-status');
   const timeButton = get('time-button'), dateButton = get('date-button'), groupsButton = get('groups-button');
@@ -523,8 +583,10 @@ noscript{display:block;margin:20px}
   const membersDialog = get('members-dialog'), rosterDialog = get('roster-dialog');
   const dialogs = [timeDialog, dateDialog, groupsDialog, rulesDialog, membersDialog, rosterDialog];
   const groups = ['A', 'B', 'C', 'D'];
-  const loadedRoster = loadPresets();
-  let presets = loadedRoster.groups, selectedMembers = defaultSelections(presets), activeMemberGroup = 'A';
+  let presets = defaultGroups(), selectedMembers = defaultSelections(presets), activeMemberGroup = 'A';
+  const apiBase = document.querySelector('meta[name="roster-api"]')?.content?.trim() || '';
+  const rosterClient = cloudRoster?.createClient({ baseUrl:apiBase });
+  let rosterVersion = null, rosterPassword = '', rosterUnlocked = false, rosterEditing = false, rosterRequest = 0, rosterSession = 0, memberRosterRequest = 0;
   const pad = value => String(value).padStart(2, '0');
   const initial = nowSelection(new Date());
   let scheduleDate = dateFromKey(initial.date), selectedTime = initial.time, draftTimeDate = scheduleDate;
@@ -548,6 +610,44 @@ noscript{display:block;margin:20px}
     notice.hidden = false;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { notice.hidden = true; }, 2200);
+  }
+  const setRosterStatus = (text, error = false) => {
+    const node = get('roster-status');
+    if (!node) return;
+    node.textContent = text;
+    node.style.color = error ? 'var(--amber)' : '';
+  };
+  const setRosterEditorEnabled = enabled => {
+    const setDisabled = (node, disabled) => { if (!node) return; node.disabled = disabled; if (disabled) node.setAttribute('disabled', ''); else node.removeAttribute?.('disabled'); };
+    for (const group of groups) setDisabled(get(`roster-${group}`), !enabled);
+    setDisabled(get('save-roster'), !enabled);
+    setDisabled(get('unlock-roster'), enabled);
+    setDisabled(get('roster-password'), enabled);
+  };
+  function applyCloudRoster(payload, source = '雲端') {
+    const next = cloudRoster.normalizeGroups(payload?.groups);
+    if (groups.some(group => !next[group].length)) throw new Error('雲端名單格式不完整。');
+    presets = next;
+    rosterVersion = Number.isInteger(payload?.version) ? payload.version : null;
+    selectedMembers = reconcileSelections(presets, selectedMembers);
+    if (source === '雲端') setRosterStatus(`已同步雲端名單${payload?.updatedAt ? `（${new Date(payload.updatedAt).toLocaleString('zh-TW')}）` : ''}`);
+    render();
+  }
+  async function refreshCloudRoster({ silent = false } = {}) {
+    if (!rosterClient?.configured || rosterEditing) {
+      if (!rosterClient?.configured && !silent) setRosterStatus('尚未設定雲端名單服務；目前只能查看預設名單。', true);
+      return false;
+    }
+    const requestId = ++rosterRequest;
+    try {
+      const payload = await rosterClient.load();
+      if (requestId !== rosterRequest || rosterEditing) return false;
+      applyCloudRoster(payload);
+      return true;
+    } catch (error) {
+      if (!silent) setRosterStatus(error.code === 'network' ? '無法連線；保留目前名單。' : `名單同步失敗：${error.message}`, true);
+      return false;
+    }
   }
   function arrow(direction) {
     return `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="${direction < 0 ? 'm6 14 6-6 6 6' : 'm6 10 6 6 6-6'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -662,33 +762,47 @@ noscript{display:block;margin:20px}
   });
   get('reset-order').addEventListener('click', () => { manualOrder = null; render(); toast('已恢復自動排序'); });
 
-  function openMembers(group) {
-    if (!groups.includes(group)) return;
-    activeMemberGroup = group;
+  function renderMemberChoices(group) {
     get('members-title').textContent = `${group} 組人員`;
     const choices = document.createDocumentFragment();
     presets[group].forEach((name, index) => {
       const button = element('button', name, 'member-choice');
       button.type = 'button';
+      button.dataset.group = group;
       button.dataset.personIndex = index;
+      button.dataset.personName = name;
       button.setAttribute('aria-pressed', String(name === selectedMembers[group]));
       choices.append(button);
     });
     get('member-options').replaceChildren(choices);
-    membersDialog.showModal();
     get('member-options').querySelector('[aria-pressed="true"]')?.focus({ preventScroll:true });
+  }
+  function openMembers(group) {
+    if (!groups.includes(group)) return;
+    activeMemberGroup = group;
+    renderMemberChoices(group);
+    membersDialog.showModal();
+    const requestId = ++memberRosterRequest;
+    void refreshCloudRoster({ silent:true }).then(updated => {
+      if (updated && requestId === memberRosterRequest && membersDialog.open && activeMemberGroup === group) renderMemberChoices(group);
+    });
   }
   rows.addEventListener('click', event => {
     if (event.target.closest('.drag-handle') || performance.now() < copyBlockedUntil || dialogs.some(dialog => dialog.open)) return;
     const row = event.target.closest('.schedule-row');
-    if (row && rows.contains(row)) openMembers(row.dataset.group);
+    if (row && rows.contains(row)) void openMembers(row.dataset.group);
   });
   get('member-options').addEventListener('click', event => {
     const button = event.target.closest('[data-person-index]');
     if (!button) return;
-    const name = presets[activeMemberGroup][Number(button.dataset.personIndex)];
-    if (!name) return;
-    selectedMembers[activeMemberGroup] = name;
+    const group = button.dataset.group || activeMemberGroup;
+    const name = button.dataset.personName || '';
+    if (!groups.includes(group) || !presets[group].includes(name)) {
+      renderMemberChoices(activeMemberGroup);
+      toast('名單已更新，請重新選擇。');
+      return;
+    }
+    selectedMembers[group] = name;
     membersDialog.close();
     render();
     rows.querySelector(`.roster-trigger[data-group="${activeMemberGroup}"]`)?.focus({ preventScroll:true });
@@ -696,14 +810,54 @@ noscript{display:block;margin:20px}
   function openRosterEditor(group = 'A') {
     groupsDialog.close();
     membersDialog.close();
-    groups.forEach(key => { get(`roster-${key}`).value = presets[key].join('\n'); });
+    rosterSession += 1;
+    rosterEditing = true;
+    groups.forEach(key => { const field = get(`roster-${key}`); if (field) field.value = presets[key].join('\n'); });
     get('roster-error').hidden = true;
+    if (get('roster-password')) get('roster-password').value = '';
+    rosterPassword = '';
+    rosterUnlocked = false;
+    setRosterEditorEnabled(false);
+    setRosterStatus(rosterClient?.configured ? '輸入管理密碼後解鎖。' : '尚未設定雲端名單服務；請先完成服務設定。', !rosterClient?.configured);
     rosterDialog.showModal();
-    get(`roster-${group}`).focus({ preventScroll:true });
+    (get('roster-password') || get(`roster-${group}`))?.focus({ preventScroll:true });
   }
   get('roster-button').addEventListener('click', () => openRosterEditor());
   get('member-edit-button').addEventListener('click', () => openRosterEditor(activeMemberGroup));
-  get('save-roster').addEventListener('click', () => {
+  get('unlock-roster')?.addEventListener('click', async () => {
+    const password = get('roster-password')?.value || '';
+    if (!password) { setRosterStatus('請輸入管理密碼。', true); return; }
+    if (!rosterClient?.configured) { setRosterStatus('尚未設定雲端名單服務，無法解鎖。', true); return; }
+    const button = get('unlock-roster');
+    const session = rosterSession;
+    button.disabled = true;
+    try {
+      await rosterClient.unlock(password);
+      if (session !== rosterSession || !rosterDialog.open || !rosterEditing) return;
+      let latest;
+      try { latest = await rosterClient.load(); }
+      catch (error) {
+        if (session !== rosterSession || !rosterDialog.open) return;
+        button.disabled = false;
+        setRosterStatus(error.code === 'network' ? '無法讀取最新名單，尚未解鎖。' : `名單同步失敗：${error.message}`, true);
+        return;
+      }
+      if (session !== rosterSession || !rosterDialog.open || !rosterEditing) return;
+      applyCloudRoster(latest);
+      groups.forEach(group => { const field = get(`roster-${group}`); if (field) field.value = presets[group].join('\n'); });
+      rosterPassword = password;
+      rosterUnlocked = true;
+      setRosterEditorEnabled(true);
+      setRosterStatus('已解鎖，可編輯名單。');
+      get('roster-A')?.focus({ preventScroll:true });
+    } catch (error) {
+      if (session !== rosterSession || !rosterDialog.open) return;
+      button.disabled = false;
+      setRosterStatus(error.code === 'unauthorized' ? '管理密碼錯誤。' : error.code === 'rate-limit' ? '嘗試次數過多，請稍後再試。' : `解鎖失敗：${error.message}`, true);
+    }
+  });
+  get('save-roster').addEventListener('click', async () => {
+    if (!rosterUnlocked || !rosterPassword || !rosterClient?.configured) { setRosterStatus('請先用管理密碼解鎖。', true); return; }
     const next = Object.fromEntries(groups.map(group => [group, parseNames(get(`roster-${group}`).value)]));
     const empty = groups.find(group => !next[group].length);
     if (empty) {
@@ -712,12 +866,49 @@ noscript{display:block;margin:20px}
       get(`roster-${empty}`).focus();
       return;
     }
-    const saved = savePresets(next);
-    presets = next;
-    selectedMembers = reconcileSelections(presets, selectedMembers);
-    rosterDialog.close();
-    render();
-    toast(saved ? '名單已儲存' : '已套用；此瀏覽器無法保留名單。');
+    const button = get('save-roster');
+    const session = rosterSession;
+    button.disabled = true;
+    try {
+      const payload = await rosterClient.save(next, rosterVersion, rosterPassword);
+      if (session !== rosterSession || !rosterDialog.open || !rosterEditing) return;
+      applyCloudRoster(payload, '雲端');
+      rosterEditing = false;
+      rosterUnlocked = false;
+      rosterPassword = '';
+      if (get('roster-password')) get('roster-password').value = '';
+      rosterDialog.close();
+      toast('名單已儲存到雲端');
+    } catch (error) {
+      if (session !== rosterSession || !rosterDialog.open || !rosterEditing) return;
+      button.disabled = false;
+      if (error.code === 'conflict') {
+        rosterUnlocked = false;
+        rosterPassword = '';
+        if (get('roster-password')) get('roster-password').value = '';
+        setRosterEditorEnabled(false);
+        setRosterStatus('名單已被其他人修改，正在讀取最新版本。', true);
+        try {
+          const latest = await rosterClient.load();
+          if (session !== rosterSession || !rosterDialog.open || !rosterEditing) return;
+          applyCloudRoster(latest);
+          groups.forEach(group => { const field = get(`roster-${group}`); if (field) field.value = presets[group].join('\n'); });
+          setRosterEditorEnabled(false);
+          setRosterStatus('已更新最新名單，請重新輸入管理密碼。', true);
+        } catch (loadError) {
+          if (session !== rosterSession || !rosterDialog.open || !rosterEditing) return;
+          setRosterStatus(loadError.code === 'network' ? '無法讀取最新名單，請稍後再試。' : `名單同步失敗：${loadError.message}`, true);
+        }
+      } else if (error.code === 'unauthorized') {
+        rosterUnlocked = false;
+        rosterPassword = '';
+        if (get('roster-password')) get('roster-password').value = '';
+        setRosterEditorEnabled(false);
+        setRosterStatus('管理密碼已失效，請重新解鎖。', true);
+      }
+      else if (error.code === 'rate-limit') setRosterStatus('嘗試次數過多，請稍後再試。', true);
+      else setRosterStatus(`雲端儲存失敗：${error.message}`, true);
+    }
   });
 
   async function copySchedule() {
@@ -852,6 +1043,7 @@ noscript{display:block;margin:20px}
     multiPointer = false;
     taps.reset();
   });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void refreshCloudRoster({ silent:true }); });
 
   function makeWheel(id, values) {
     const wheel = get(id), rowHeight = 48;
@@ -967,6 +1159,14 @@ noscript{display:block;margin:20px}
     dialog.addEventListener('close', () => {
       const notice = get('copy-toast');
       if (notice.parentNode === dialog) document.body.append(notice);
+      if (dialog === rosterDialog) {
+        rosterSession += 1;
+        rosterEditing = false;
+        rosterUnlocked = false;
+        rosterPassword = '';
+        if (get('roster-password')) get('roster-password').value = '';
+        setRosterEditorEnabled(false);
+      }
     });
     dialog.addEventListener('click', event => {
       const rect = dialog.getBoundingClientRect();
@@ -974,6 +1174,7 @@ noscript{display:block;margin:20px}
     });
   });
   render();
+  void refreshCloudRoster();
 })();
 </script>
 </body>
