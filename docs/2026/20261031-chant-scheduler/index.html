@@ -9,7 +9,7 @@
 <meta name="roster-api" content="https://chant-roster-20261031.namoamitabhabuddha.chatgpt.site">
 <title>助念排班表</title>
 <style>
-:root{color-scheme:dark;--bg:#0d1728;--ink:#f1f5ff;--muted:#dde6f5;--line:rgba(220,234,255,.23);--accent:#b3d3ff;--soft:rgba(180,209,255,.13);--amber:#ffd995;--row-height:48px;--reading-scale:1;--font-sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+:root{color-scheme:dark;--bg:#0d1728;--ink:#f1f5ff;--muted:#dde6f5;--line:rgba(220,234,255,.23);--accent:#b3d3ff;--soft:rgba(180,209,255,.13);--amber:#ffd995;--row-height:48px;--font-sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 *{box-sizing:border-box}
 body{margin:0;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px);min-height:100dvh;background:var(--bg);color:var(--ink);font:16px/1.5 var(--font-sans);touch-action:auto}
@@ -23,7 +23,7 @@ button:not(:disabled):active{background-color:rgba(189,216,255,.18)}
 .glass{background:linear-gradient(135deg,rgba(213,231,255,.16),rgba(150,180,220,.08));border:1px solid var(--line);box-shadow:inset 0 1px 1px rgba(255,255,255,.23),0 14px 32px rgba(0,0,0,.2);backdrop-filter:blur(20px) saturate(125%);-webkit-backdrop-filter:blur(20px) saturate(125%)}
 main{position:relative;z-index:1;width:min(100% - 48px,520px);margin:0 auto;padding-bottom:max(36px,env(safe-area-inset-bottom,0px))}
 .topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:24px 2px 18px}
-h1{margin:0;font-size:calc(clamp(21px,6.5vw,26px)*var(--reading-scale));line-height:1.35;font-weight:800;letter-spacing:-.025em}
+h1{margin:0;font-size:clamp(21px,6.5vw,26px);line-height:1.35;font-weight:800;letter-spacing:-.025em}
 .tools{display:flex;flex-wrap:wrap;gap:9px}
 .tool{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:44px;min-width:64px;padding:8px 14px;border-radius:24px;font-size:14px;font-weight:650}
 .tool.active{border-color:var(--accent)}
@@ -32,17 +32,17 @@ h1{margin:0;font-size:calc(clamp(21px,6.5vw,26px)*var(--reading-scale));line-hei
 #time-button,#date-button{display:flex;align-items:center;justify-content:center;border:0;background:transparent;padding:0 10px;border-radius:12px;font-variant-numeric:tabular-nums}
 #time-button{min-height:86px}
 #time-button,#date-button{max-width:100%;min-width:0}
-#start-time{font-size:calc(clamp(56px,20vw,82px)*var(--reading-scale));font-weight:800;line-height:1.1;letter-spacing:-.055em}
+#start-time{font-size:clamp(56px,20vw,82px);font-weight:800;line-height:1.1;letter-spacing:-.055em}
 #date-button{min-height:44px;color:var(--muted);font-size:17px;font-weight:650}
 h2{margin:0;font-size:20px;line-height:1.4;font-weight:700}
 .schedule-area{padding-bottom:32px;cursor:copy}
 .schedule{display:grid;gap:20px;border-radius:20px;touch-action:manipulation;-webkit-user-select:none;user-select:none}
-.day-heading{margin:0 8px 12px;color:var(--muted);font-size:calc(16px*var(--reading-scale));line-height:1.5;font-weight:650;font-variant-numeric:tabular-nums}
+.day-heading{margin:0 8px 12px;color:var(--muted);font-size:16px;line-height:1.5;font-weight:650;font-variant-numeric:tabular-nums}
 .schedule-day{container:schedule / inline-size;min-width:0}
 .day-rows{margin:0;padding:0;list-style:none;display:grid;gap:13px}
-.schedule-row{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:calc(74px*var(--reading-scale));padding:14px 48px 14px 12px;border-radius:19px;cursor:pointer}
+.schedule-row{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:74px;padding:14px 48px 14px 12px;border-radius:19px;cursor:pointer}
 .roster-trigger{width:100%;min-height:44px;padding:0;border:0;border-radius:10px;background:transparent}
-.row-content{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;column-gap:clamp(6px,2vw,12px);row-gap:.14em;min-width:0;white-space:nowrap;font-family:var(--font-sans);font-size:calc(clamp(24px,8.4vw,36px)*var(--reading-scale));font-weight:900;line-height:1.35;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
+.row-content{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;column-gap:clamp(6px,2vw,12px);row-gap:.14em;min-width:0;white-space:nowrap;font-family:var(--font-sans);font-size:clamp(24px,8.4vw,36px);font-weight:900;line-height:1.35;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
 .team,.team small,.assigned-person,.hours{font:inherit;letter-spacing:inherit}
 .team,.hours{flex:0 0 auto;white-space:nowrap}
 .assigned-person{flex:0 0 auto;width:max-content;min-width:0;max-width:100%;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
@@ -106,16 +106,13 @@ dialog::backdrop{background:rgba(4,9,18,.62);backdrop-filter:blur(5px);-webkit-b
 .roster-auth{display:grid;gap:10px;margin:0 0 14px;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.04)}
 .roster-status{min-height:24px;margin:0 0 10px;color:var(--muted);font-size:14px}
 .roster-error{color:var(--amber);font-size:15px;margin:14px 0 0}
-.reading-controls{display:grid;grid-template-columns:44px minmax(80px,1fr) 44px;gap:10px;align-items:center;margin-bottom:18px}
-.reading-controls button{min-height:44px;border:1px solid var(--line);border-radius:12px;background:var(--soft);font-size:20px;font-weight:700}
-#reading-reset{font-size:16px}
 .rule-list{margin:0;padding-left:21px;font-size:16px;line-height:1.8}
 .rule-list li+li{margin-top:12px}
 noscript{display:block;margin:20px}
 @media(hover:hover){button:not(:disabled):hover{background-color:rgba(189,216,255,.1)}.primary:not(:disabled):hover,.calendar-day[aria-pressed="true"]:hover{background-color:#c6dfff}.schedule-row:hover{border-color:rgba(220,234,255,.4)}}
 @media(max-width:600px){main{width:calc(100% - 32px);max-width:440px}.topbar{padding-top:20px;padding-bottom:16px}.tool{min-width:58px;padding-inline:12px;font-size:13px}.clock-card{padding-block:16px 12px}#time-button{min-height:78px}dialog{width:100%;max-width:100%;max-height:calc(100dvh - 16px);margin:auto 0 0;border-radius:26px 26px 0 0}.sheet{padding:16px 22px max(24px,env(safe-area-inset-bottom))}.wheels{max-width:340px;margin:auto}}
 @media(max-width:350px){main{width:calc(100% - 24px)}.tools{gap:7px}.tool{min-width:52px;padding-inline:9px}.sheet{padding-inline:15px}.calendar-grid,.weekdays{gap:1px}}
-@supports(font-size:1cqi){.row-content{font-size:min(calc(clamp(24px,8.4vw,36px)*var(--reading-scale)),22cqi)}#start-time{font-size:min(calc(clamp(56px,20vw,82px)*var(--reading-scale)),32cqi)}}
+@supports(font-size:1cqi){.row-content{font-size:min(clamp(24px,8.4vw,36px),22cqi)}#start-time{font-size:min(clamp(56px,20vw,82px),32cqi)}}
 @container schedule (max-width:240px){.schedule-row{flex-direction:column;padding:10px 6px;gap:4px}.drag-handle{position:static;transform:none;height:44px;flex:none}.row-content{column-gap:6px}}
 .is-reading-zoom main{width:min(520px,calc(var(--visible-width) - 12px));margin-left:calc(var(--visible-left) + max(6px,(var(--visible-width) - 520px)/2));margin-right:0}
 .is-reading-zoom body{padding-inline:0}
@@ -162,7 +159,6 @@ noscript{display:block;margin:20px}
 <button id="confirm-date" type="button" class="primary">完成</button></div></dialog>
 <dialog id="groups-dialog" aria-labelledby="groups-title"><div class="sheet">
 <div class="sheet-header"><h2 id="groups-title">調整</h2><button class="icon-button" type="button" data-close aria-label="關閉調整"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
-<div class="section-label" id="reading-label">閱讀大小</div><div class="reading-controls" role="group" aria-labelledby="reading-label"><button id="reading-smaller" type="button" aria-label="縮小閱讀大小">−</button><button id="reading-reset" type="button" aria-label="恢復閱讀大小 100%" title="恢復100%">100%</button><button id="reading-larger" type="button" aria-label="放大閱讀大小">＋</button></div>
 <button id="roster-button" class="secondary" type="button" aria-haspopup="dialog" aria-controls="roster-dialog">組別名單</button>
 <div class="section-label">不能來的組別</div><div class="group-choices" role="group" aria-label="不能來的組別">
 <button class="group-choice" type="button" data-group="" aria-pressed="true">無</button>
@@ -588,18 +584,12 @@ noscript{display:block;margin:20px}
 <script id="reading-engine">(function (root) {
   'use strict';
 
-  const MIN = 0.8;
-  const MAX = 2;
-  const STEP = 0.1;
-  const EPSILON = 0.001;
   const ZOOM_THRESHOLD = 1.01;
   const VISIBLE_VARS = ['--visible-width', '--visible-height', '--visible-left', '--visible-top'];
   const installs = typeof WeakMap === 'function' ? new WeakMap() : null;
 
-  const clamp = value => Math.min(MAX, Math.max(MIN, Math.round(value / STEP) * STEP));
   const finitePositive = value => Number.isFinite(Number(value)) && Number(value) > 0;
   const finiteNonNegative = value => Number.isFinite(Number(value)) && Number(value) >= 0;
-  const formatSize = value => `${Math.round(value * 100)}%`;
 
   function styleValue(style, property, value) {
     if (!style || typeof style.setProperty !== 'function') return;
@@ -619,28 +609,9 @@ noscript{display:block;margin:20px}
     const previous = installs?.get(doc);
     if (typeof previous === 'function') previous();
 
-    const smaller = doc.getElementById?.('reading-smaller');
-    const larger = doc.getElementById?.('reading-larger');
-    const reset = doc.getElementById?.('reading-reset');
-    const originalScale = html.style?.getPropertyValue?.('--reading-scale') || '';
-    const originalData = html.getAttribute?.('data-reading-size');
     const originalZoomClass = html.classList?.contains?.('is-reading-zoom') || false;
-    let size = 1;
     let disposed = false;
     let viewport = win?.visualViewport || null;
-
-    const setReadingSize = next => {
-      if (disposed || !Number.isFinite(Number(next))) return;
-      size = clamp(Number(next));
-      styleValue(html.style, '--reading-scale', String(size));
-      html.setAttribute?.('data-reading-size', formatSize(size));
-      if (reset) {
-        reset.textContent = formatSize(size);
-        reset.disabled = Math.abs(size - 1) < EPSILON;
-      }
-      if (smaller) smaller.disabled = size <= MIN + EPSILON;
-      if (larger) larger.disabled = size >= MAX - EPSILON;
-    };
 
     const clearVisibleViewport = () => {
       html.classList?.remove?.('is-reading-zoom');
@@ -669,33 +640,20 @@ noscript{display:block;margin:20px}
       styleValue(html.style, '--visible-top', `${top}px`);
     };
 
-    const onSmaller = () => setReadingSize(size - STEP);
-    const onLarger = () => setReadingSize(size + STEP);
-    const onReset = () => setReadingSize(1);
-    smaller?.addEventListener?.('click', onSmaller);
-    larger?.addEventListener?.('click', onLarger);
-    reset?.addEventListener?.('click', onReset);
     viewport?.addEventListener?.('resize', updateVisibleViewport);
     viewport?.addEventListener?.('scroll', updateVisibleViewport);
     win?.addEventListener?.('resize', updateVisibleViewport);
-    setReadingSize(1);
     updateVisibleViewport();
 
     const dispose = () => {
       if (disposed) return;
       disposed = true;
-      smaller?.removeEventListener?.('click', onSmaller);
-      larger?.removeEventListener?.('click', onLarger);
-      reset?.removeEventListener?.('click', onReset);
       viewport?.removeEventListener?.('resize', updateVisibleViewport);
       viewport?.removeEventListener?.('scroll', updateVisibleViewport);
       win?.removeEventListener?.('resize', updateVisibleViewport);
       if (html.style) {
-        styleValue(html.style, '--reading-scale', originalScale || null);
         for (const property of VISIBLE_VARS) styleValue(html.style, property, null);
       }
-      if (originalData === null || originalData === undefined) html.removeAttribute?.('data-reading-size');
-      else html.setAttribute?.('data-reading-size', originalData);
       if (originalZoomClass) html.classList?.add?.('is-reading-zoom');
       else html.classList?.remove?.('is-reading-zoom');
       if (installs?.get(doc) === dispose) installs.delete(doc);
@@ -704,7 +662,7 @@ noscript{display:block;margin:20px}
     return dispose;
   }
 
-  const api = Object.freeze({ install, MIN, MAX, STEP, ZOOM_THRESHOLD });
+  const api = Object.freeze({ install, ZOOM_THRESHOLD });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.ChantReading = api;
 })(globalThis);
