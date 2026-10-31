@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0d1728">
+<meta name="description" content="助念排班表">
+<title>助念排班表</title>
+<style>
+:root{color-scheme:dark;--bg:#0d1728;--ink:#f1f5ff;--muted:#dde6f5;--line:rgba(220,234,255,.23);--accent:#b3d3ff;--soft:rgba(180,209,255,.13);--amber:#ffd995;--row-height:48px;--font-sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+*{box-sizing:border-box}
+body{margin:0;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px);min-height:100dvh;background:var(--bg);color:var(--ink);font:16px/1.5 var(--font-sans);touch-action:auto}
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 12% 18%,rgba(82,119,166,.34),transparent 55%),radial-gradient(ellipse at 95% 70%,rgba(76,86,147,.26),transparent 58%),linear-gradient(150deg,#13243a,#10192a 60%,#1a253c)}
+[hidden]{display:none!important}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+button:disabled{opacity:.35;cursor:default}
+button:not(:disabled):active{background-color:rgba(189,216,255,.18)}
+.glass{background:linear-gradient(135deg,rgba(213,231,255,.16),rgba(150,180,220,.08));border:1px solid var(--line);box-shadow:inset 0 1px 1px rgba(255,255,255,.23),0 14px 32px rgba(0,0,0,.2);backdrop-filter:blur(20px) saturate(125%);-webkit-backdrop-filter:blur(20px) saturate(125%)}
+main{position:relative;z-index:1;width:min(100% - 48px,520px);margin:0 auto;padding-bottom:max(36px,env(safe-area-inset-bottom,0px))}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:24px 2px 18px}
+h1{margin:0;font-size:26px;line-height:1.35;font-weight:800;letter-spacing:-.025em}
+.tools{display:flex;gap:9px}
+.tool{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:44px;min-width:64px;padding:8px 14px;border-radius:24px;font-size:14px;font-weight:650}
+.tool.active{border-color:var(--accent)}
+#missing-indicator{color:var(--accent)}
+.clock-card{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:178px;padding:18px 16px 14px;border-radius:26px;margin-bottom:26px}
+#time-button,#date-button{display:flex;align-items:center;justify-content:center;border:0;background:transparent;padding:0 10px;border-radius:12px;font-variant-numeric:tabular-nums}
+#time-button{min-height:86px}
+#start-time{font-size:82px;font-weight:800;line-height:1.1;letter-spacing:-.055em}
+#date-button{min-height:44px;color:var(--muted);font-size:17px;font-weight:650}
+h2{margin:0;font-size:20px;line-height:1.4;font-weight:700}
+.schedule-area{padding-bottom:32px;cursor:copy}
+.schedule{display:grid;gap:20px;border-radius:20px;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.day-heading{margin:0 8px 12px;color:var(--muted);font-size:16px;line-height:1.5;font-weight:650;font-variant-numeric:tabular-nums}
+.day-rows{margin:0;padding:0;list-style:none;display:grid;gap:13px}
+.schedule-row{position:relative;display:flex;align-items:center;justify-content:center;min-height:80px;padding:14px 48px 14px 18px;border-radius:19px;cursor:pointer}
+.roster-trigger{width:100%;min-height:44px;padding:0;border:0;border-radius:10px;background:transparent}
+.row-content{display:flex;align-items:baseline;justify-content:center;gap:12px;white-space:nowrap;font-family:var(--font-sans);font-size:36px;font-weight:900;line-height:1.35;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
+.team,.team small,.assigned-person,.hours{font:inherit;letter-spacing:inherit}
+.assigned-person{min-width:0;max-width:8em;white-space:normal;overflow-wrap:anywhere}
+.pending-person{color:var(--amber)}
+.drag-handle{position:absolute;right:4px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:44px;height:52px;border:0;border-radius:12px;background:transparent;color:var(--muted);cursor:grab;touch-action:pinch-zoom}
+.drag-handle svg{width:18px;height:22px;opacity:.85}
+.schedule-row.dragging{z-index:5;opacity:.8;border-color:var(--accent);box-shadow:0 20px 40px rgba(0,0,0,.4);cursor:grabbing}
+.schedule-row.drop-before::before,.schedule-row.drop-after::after{content:"";position:absolute;left:14px;right:14px;height:3px;border-radius:4px;background:var(--accent)}
+.schedule-row.drop-before::before{top:-9px}
+.schedule-row.drop-after::after{bottom:-9px}
+.copy-toast{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:20;width:max-content;max-width:calc(100% - 32px);padding:12px 20px;border:1px solid var(--line);border-radius:14px;background:#253a55;color:var(--ink);box-shadow:0 8px 30px rgba(0,0,0,.3);text-align:center;pointer-events:none}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+dialog{padding:0;width:min(440px,calc(100% - 32px));max-width:none;max-height:calc(100dvh - 32px);margin:auto;border:1px solid var(--line);border-radius:24px;color:var(--ink);background:rgba(19,31,51,.94);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 24px 80px rgba(0,0,0,.5);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);overflow:auto}
+dialog::backdrop{background:rgba(4,9,18,.62);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.sheet{padding:18px 24px 24px}
+.sheet-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.icon-button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border:0;border-radius:12px;background:transparent;color:var(--muted)}
+.icon-button svg{width:20px;height:20px}
+.time-actions{display:flex;align-items:center;gap:4px}
+.text-button{min-height:44px;min-width:56px;padding:8px;border:0;border-radius:10px;background:transparent;color:var(--accent);font-size:15px}
+.wheels{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);gap:14px;padding:0 12px}
+.wheel-label{display:block;text-align:center;font-size:14px;color:var(--muted);margin-bottom:8px}
+.wheel-viewport{position:relative;border-radius:12px}
+.wheel-viewport::before{content:"";position:absolute;top:96px;left:0;right:0;height:48px;background:var(--soft);border:1px solid var(--line);border-radius:10px;pointer-events:none}
+.wheel{position:relative;height:240px;overflow-y:auto;padding-block:96px;scroll-snap-type:y mandatory;overscroll-behavior-y:contain;scrollbar-width:none;touch-action:pan-y pinch-zoom;border-radius:12px}
+.wheel::-webkit-scrollbar{display:none}
+.wheel-option{display:flex;align-items:center;justify-content:center;height:var(--row-height);min-height:var(--row-height);scroll-snap-align:center;color:var(--muted);font-size:24px;font-variant-numeric:tabular-nums;line-height:1;cursor:pointer}
+.wheel-option[aria-selected="true"]{color:var(--ink);font-size:30px;font-weight:750}
+.wheel-separator{align-self:center;padding-top:29px;text-align:center;font-size:27px;color:var(--muted)}
+.primary{width:100%;min-height:50px;margin-top:24px;border:1px solid rgba(209,229,255,.35);border-radius:13px;background:#b3d3ff;color:#112239;font-weight:700}
+.primary:not(:disabled):active,.calendar-day[aria-pressed="true"]:active{background-color:#c6dfff}
+.calendar-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+#calendar-month{font-weight:650}
+.weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.weekdays{text-align:center;margin-bottom:8px;color:var(--muted);font-size:14px}
+.calendar-day{min-height:44px;padding:4px 0;border:1px solid transparent;border-radius:10px;background:transparent;font-variant-numeric:tabular-nums}
+.calendar-day.outside{color:#a8b6cc}
+.calendar-day[aria-current="date"]{border-color:var(--line)}
+.calendar-day[aria-pressed="true"]{background:#b3d3ff;color:#112239;font-weight:750}
+.calendar-footer{display:flex;gap:8px;margin-top:16px}
+#date-input{min-width:0;width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.05)}
+.section-label{display:flex;align-items:center;justify-content:space-between;min-height:44px;margin:12px 0 10px;font-size:15px;color:var(--muted)}
+.group-choices{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.group-choice{min-height:56px;padding:8px 4px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04);font-size:24px}
+.group-choice[aria-pressed="true"]{background:var(--soft);color:var(--ink);border:2px solid var(--accent);font-weight:750}
+.order-controls{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.order-control{display:flex;align-items:center;gap:8px;padding:4px 8px 4px 14px;border:1px solid var(--line);border-radius:12px}
+.order-label{flex:1;font-size:20px;font-weight:650}
+.order-control .icon-button{background:rgba(255,255,255,.04)}
+.secondary{width:100%;min-height:46px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.member-options{display:grid;gap:10px}
+.member-choice{position:relative;width:100%;min-height:60px;padding:12px 42px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.04);font-size:24px}
+.member-choice[aria-pressed="true"]{border:2px solid var(--accent);background:var(--soft);font-weight:750}
+.member-choice[aria-pressed="true"]::after{content:"✓";position:absolute;right:18px;color:var(--accent)}
+.member-edit{display:block;margin:16px auto 0}
+.roster-hint{margin:0 0 16px;color:var(--muted);font-size:14px}
+.roster-fields{display:grid;gap:14px}
+.roster-field{display:grid;gap:6px;font-weight:650}
+.roster-field textarea{width:100%;min-height:82px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.05);font-size:17px;font-weight:400;line-height:1.5}
+.roster-error{color:var(--amber);font-size:15px;margin:14px 0 0}
+.rule-list{margin:0;padding-left:21px;font-size:16px;line-height:1.8}
+.rule-list li+li{margin-top:12px}
+noscript{display:block;margin:20px}
+@media(hover:hover){button:not(:disabled):hover{background-color:rgba(189,216,255,.1)}.primary:not(:disabled):hover,.calendar-day[aria-pressed="true"]:hover{background-color:#c6dfff}.schedule-row:hover{border-color:rgba(220,234,255,.4)}}
+@media(max-width:600px){main{width:calc(100% - 40px);max-width:440px}.topbar{padding-top:20px;padding-bottom:16px}h1{font-size:24px}.tool{min-width:58px;padding-inline:12px;font-size:13px}.clock-card{min-height:164px;padding-block:16px 12px;margin-bottom:24px}#start-time{font-size:74px}#time-button{min-height:78px}.schedule-row{min-height:74px}.row-content{font-size:33px}dialog{width:100%;max-width:100%;max-height:calc(100dvh - 16px);margin:auto 0 0;border-radius:26px 26px 0 0}.sheet{padding:16px 22px max(24px,env(safe-area-inset-bottom))}.wheels{max-width:340px;margin:auto}}
+@media(max-width:350px){main{width:calc(100% - 28px)}.tools{gap:7px}h1{font-size:21px}.tool{min-width:52px;padding-inline:9px}#start-time{font-size:66px}.row-content{font-size:29px;gap:10px}.sheet{padding-inline:15px}.calendar-grid,.weekdays{gap:1px}}
+@media(max-height:520px){.sheet{padding-top:10px;padding-bottom:14px}.sheet-header{margin-bottom:6px}.primary{margin-top:12px}}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.glass{background:#28384f}dialog{background:#142237}}
+@media(prefers-reduced-transparency:reduce){.glass{background:#28384f;backdrop-filter:none;-webkit-backdrop-filter:none}dialog{background:#142237}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+@media print{body{background:white;color:black}.ambient,.tools,.drag-handle,dialog,.copy-toast{display:none}main{width:100%}.glass{background:white;color:black;box-shadow:none;border-color:#aaa;backdrop-filter:none}.day-heading,#date-button{color:#333}}
+</style>
+</head>
+<body>
+<div class="ambient" aria-hidden="true"></div>
+<main>
+<header class="topbar"><h1>助念排班表</h1><nav class="tools" aria-label="排班設定">
+<button id="groups-button" class="tool glass" type="button" aria-haspopup="dialog" aria-controls="groups-dialog">調整<span id="missing-indicator" hidden></span></button>
+<button id="rules-button" class="tool glass" type="button" aria-haspopup="dialog" aria-controls="rules-dialog">說明</button></nav></header>
+<div class="clock-card glass">
+<button id="time-button" type="button" aria-haspopup="dialog" aria-controls="time-dialog" aria-label="選擇開始時間"><span id="start-time">--:--</span></button>
+<button id="date-button" type="button" aria-haspopup="dialog" aria-controls="date-dialog" aria-label="選擇日期"><span id="start-date">--/--</span></button>
+</div>
+<section id="schedule-area" class="schedule-area" aria-labelledby="result-title"><h2 id="result-title" class="sr-only">四班順序</h2><span id="result-status" class="sr-only"></span>
+<div id="schedule-rows" class="schedule" role="group" tabindex="0" aria-label="助念排班順序，點空白處或按 Enter 複製全部" aria-keyshortcuts="Enter" title="點空白處複製四班"></div></section>
+<p id="live-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+<div id="copy-toast" class="copy-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+<noscript>請啟用 JavaScript。</noscript>
+</main>
+<dialog id="time-dialog" aria-labelledby="time-title"><div class="sheet">
+<div class="sheet-header"><h2 id="time-title">開始時間</h2><div class="time-actions"><button id="now-button" class="text-button" type="button">現在</button><button class="icon-button" type="button" data-close aria-label="關閉時間選擇"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div></div>
+<div class="wheels">
+<div><span id="hour-label" class="wheel-label">時</span><div class="wheel-viewport"><div id="hour-wheel" class="wheel" role="listbox" aria-labelledby="hour-label" tabindex="0"></div></div></div>
+<span class="wheel-separator" aria-hidden="true">:</span>
+<div><span id="minute-label" class="wheel-label">分</span><div class="wheel-viewport"><div id="minute-wheel" class="wheel" role="listbox" aria-labelledby="minute-label" tabindex="0"></div></div></div>
+</div><button id="confirm-time" type="button" class="primary">完成</button></div></dialog>
+<dialog id="date-dialog" aria-labelledby="date-title"><div class="sheet">
+<div class="sheet-header"><h2 id="date-title">日期</h2><button class="icon-button" type="button" data-close aria-label="關閉日期選擇"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+<div class="calendar-nav"><button id="previous-month" class="icon-button" type="button" aria-label="上個月">‹</button><span id="calendar-month" aria-live="polite"></span><button id="next-month" class="icon-button" type="button" aria-label="下個月">›</button></div>
+<div class="weekdays" aria-hidden="true"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+<div id="calendar-grid" class="calendar-grid" role="group" aria-label="選擇日期"></div>
+<div class="calendar-footer"><input id="date-input" type="date" aria-label="輸入日期" required><button id="today-button" class="text-button" type="button">今天</button></div>
+<button id="confirm-date" type="button" class="primary">完成</button></div></dialog>
+<dialog id="groups-dialog" aria-labelledby="groups-title"><div class="sheet">
+<div class="sheet-header"><h2 id="groups-title">調整</h2><button class="icon-button" type="button" data-close aria-label="關閉調整"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+<button id="roster-button" class="secondary" type="button" aria-haspopup="dialog" aria-controls="roster-dialog">組別名單</button>
+<div class="section-label">不能來的組別</div><div class="group-choices" role="group" aria-label="不能來的組別">
+<button class="group-choice" type="button" data-group="" aria-pressed="true">無</button>
+<button class="group-choice" type="button" data-group="A" aria-pressed="false">A</button>
+<button class="group-choice" type="button" data-group="B" aria-pressed="false">B</button>
+<button class="group-choice" type="button" data-group="C" aria-pressed="false">C</button>
+<button class="group-choice" type="button" data-group="D" aria-pressed="false">D</button>
+</div>
+<div class="section-label">出班順序<button id="reset-order" class="text-button" type="button">恢復自動排序</button></div>
+<ol id="order-controls" class="order-controls" aria-label="調整出班順序"></ol>
+<button class="primary" type="button" data-close>完成</button></div></dialog>
+<dialog id="members-dialog" aria-labelledby="members-title"><div class="sheet">
+<div class="sheet-header"><h2 id="members-title">組別人員</h2><button class="icon-button" type="button" data-close aria-label="關閉人員選擇"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+<div id="member-options" class="member-options" role="group" aria-label="選擇出班人員"></div>
+<button id="member-edit-button" class="text-button member-edit" type="button">編輯名單</button>
+</div></dialog>
+<dialog id="roster-dialog" aria-labelledby="roster-title"><div class="sheet">
+<div class="sheet-header"><h2 id="roster-title">A–D 組別名單</h2><button class="icon-button" type="button" data-close aria-label="關閉名單編輯"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+<p class="roster-hint">每行一人，第一位為預設。名單保存在此瀏覽器。</p>
+<div class="roster-fields">
+<label class="roster-field" for="roster-A">A 組<textarea id="roster-A" rows="2" spellcheck="false"></textarea></label>
+<label class="roster-field" for="roster-B">B 組<textarea id="roster-B" rows="2" spellcheck="false"></textarea></label>
+<label class="roster-field" for="roster-C">C 組<textarea id="roster-C" rows="2" spellcheck="false"></textarea></label>
+<label class="roster-field" for="roster-D">D 組<textarea id="roster-D" rows="2" spellcheck="false"></textarea></label>
+</div><p id="roster-error" class="roster-error" role="alert" hidden></p>
+<button id="save-roster" class="primary" type="button">儲存名單</button>
+</div></dialog>
+<dialog id="rules-dialog" aria-labelledby="rules-title"><div class="sheet">
+<div class="sheet-header"><h2 id="rules-title">排班說明</h2><button class="icon-button" type="button" data-close aria-label="關閉說明"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>
+<ul class="rule-list">
+<li>每組一班，每班完整 2 小時。</li>
+<li>08:00 起排；C、D 最晚 18:00 結束。</li>
+<li>A、B 最晚 22:00 結束；全案第 4 班可至 22:30。</li>
+<li>不能來先後移，前面的班次不動；末班仍不能來，人員標示「待協調」，保留原時段。</li>
+<li>手動排序依指定順序；超時班次續排隔天。</li>
+<li>點組別卡片換人；名單可在「調整」中編輯。</li>
+<li>拖曳卡片改順序；點空白處複製四班與人員。</li>
+</ul></div></dialog>
+<script id="scheduler-engine">(function (root) {
+  'use strict';
+  const DAY = 1440, OPEN = 480, DURATION = 120;
+  const groups = ['A', 'B', 'C', 'D'];
+  const cutoff = (group, index) => ['C', 'D'].includes(group) ? 1080 : index === 3 ? 1350 : 1320;
+  const fits = (group, start, index) => start % DAY >= OPEN && start % DAY + DURATION <= cutoff(group, index);
+  const clock = value => `${String(Math.floor(value % DAY / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
+  const dayLabel = value => Math.floor(value / DAY) === 0 ? '當天' : Math.floor(value / DAY) === 1 ? '隔天' : `第 ${Math.floor(value / DAY) + 1} 天`;
+
+  function parseTime(value) {
+    if (typeof value !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) return null;
+    const [hour, minute] = value.split(':').map(Number);
+    return hour * 60 + minute;
+  }
+
+  function schedule(order, cursor, offset = 0) {
+    return [...order].map((group, index) => {
+      let day = Math.floor(cursor / DAY);
+      let start = Math.max(cursor, day * DAY + OPEN);
+      if (!fits(group, start, index + offset)) start = (++day) * DAY + OPEN;
+      cursor = start + DURATION;
+      return { position: offset + index + 1, group, start, end: cursor, status: 'scheduled' };
+    });
+  }
+
+  function permutations(order) {
+    if (!order.length) return [''];
+    return [...order].flatMap((group, index) => permutations(order.slice(0, index) + order.slice(index + 1)).map(suffix => group + suffix));
+  }
+
+  function distance(order, preferred) {
+    let inversions = 0;
+    for (let a = 0; a < order.length; a++) {
+      for (let b = a + 1; b < order.length; b++) {
+        if (preferred.indexOf(order[a]) > preferred.indexOf(order[b])) inversions++;
+      }
+    }
+    return inversions;
+  }
+
+  // Check actual handover/opening decisions. No unconfirmed later arrival or
+  // additional same-day waiting is invented. This is a conditional trial plan.
+  function leavesReadyGroupWaiting(slots, original, missingIndex) {
+    const unavailable = original[missingIndex];
+    let cursor = unavailable.start;
+    for (let index = missingIndex; index < 4; index++) {
+      const decision = Math.max(cursor, Math.floor(cursor / DAY) * DAY + OPEN);
+      if (slots[index].start > decision && slots.slice(index).some(slot =>
+        fits(slot.group, decision, index) && !(slot.group === unavailable.group && decision === unavailable.start)
+      )) return true;
+      cursor = slots[index].end;
+    }
+    return false;
+  }
+
+  function plan(value, missing = '') {
+    const minute = parseTime(value);
+    if (minute === null) return { status: 'invalid', message: '請輸入 00:00–23:59 的有效時間。', slots: [] };
+    if (missing !== '' && !groups.includes(missing)) return { status: 'invalid', message: '請選擇「無」或 A–D 組。', slots: [] };
+
+    // The six representative patterns previously reviewed with the user.
+    const order = minute <= 600 ? 'ABCD' : minute <= 840 ? 'CDAB' : minute <= 960 ? 'CABD' : 'ABCD';
+    const original = schedule(order, minute);
+    const result = { status: 'scheduled', input: value, missing, original, slots: original, advanced: false, normalization: minute < OPEN ? 'before-opening' : minute > 1200 ? 'next-day' : null };
+    if (!missing) return result;
+
+    const index = order.indexOf(missing);
+    if (index === 3) {
+      return { ...result, status: 'pending', slots: [
+        ...original.slice(0, 3),
+        { position: 4, group: missing, status: 'pending', start: null, end: null, originalStart: original[3].start, originalEnd: original[3].end }
+      ] };
+    }
+
+    const remaining = order.slice(index);
+    const preferred = remaining.replace(missing, '') + missing;
+    const candidates = [];
+    for (const suffix of permutations(remaining)) {
+      const slots = [...original.slice(0, index), ...schedule(suffix, original[index].start, index)];
+      if (slots.find(slot => slot.group === missing).start === original[index].start) continue;
+      if (leavesReadyGroupWaiting(slots, original, index)) continue;
+      candidates.push({ slots, suffix, tail: suffix.endsWith(missing), finish: slots.at(-1).end, today: slots.filter(slot => slot.start < DAY).length, distance: distance(suffix, preferred) });
+    }
+    // Preserve tail placement whenever compatible with available-groups-first.
+    // Among equivalent choices, finish earlier and retain other teams' order.
+    candidates.sort((a, b) => Number(b.tail) - Number(a.tail) || a.finish - b.finish || b.today - a.today || a.distance - b.distance || (a.suffix < b.suffix ? -1 : a.suffix > b.suffix ? 1 : 0));
+    if (!candidates.length) throw new Error('找不到符合已核對規則的排法。');
+    return { ...result, slots: candidates[0].slots, advanced: !candidates[0].tail };
+  }
+
+  function planInOrder(value, order, missing = '') {
+    const originalResult = plan(value, missing);
+    if (originalResult.status === 'invalid') return originalResult;
+    const invalid = message => ({ status:'invalid', message, slots:[] });
+    if (typeof order !== 'string' || order.length !== 4 || [...order].sort().join('') !== 'ABCD') return invalid('A–D 各排一次。');
+    const slots = schedule(order, parseTime(value));
+    if (missing) {
+      const originalIndex = originalResult.original.findIndex(slot => slot.group === missing);
+      const prefix = originalResult.original.slice(0, originalIndex);
+      if (prefix.some((slot, index) => slot.group !== slots[index].group || slot.start !== slots[index].start)) {
+        return invalid('請保留不能來組別之前的班次。');
+      }
+      if (originalIndex === 3) return { ...originalResult, manual:true };
+      if (slots.find(slot => slot.group === missing).start <= originalResult.original[originalIndex].start) {
+        return invalid(`${missing} 組請排在原時段之後。`);
+      }
+    }
+    return { ...originalResult, status:'scheduled', slots, manual:true, advanced:Boolean(missing && order.at(-1) !== missing) };
+  }
+
+  const api = Object.freeze({ plan, planInOrder, parseTime, clock, dayLabel });
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.ChantScheduler = api;
+})(globalThis);
+</script>
+<script id="controls-engine">(function (root) {
+  'use strict';
+  const pad = value => String(value).padStart(2, '0');
+  const weekdays = '日一二三四五六';
+  function dateKey(value) {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Taipei', year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(value);
+    const part = type => parts.find(item => item.type === type).value;
+    return `${part('year')}-${part('month')}-${part('day')}`;
+  }
+  function dateFromKey(key) {
+    if (typeof key !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return null;
+    const value = new Date(`${key}T12:00:00+08:00`);
+    if (!Number.isFinite(value.getTime()) || dateKey(value) !== key) return null;
+    return value;
+  }
+  function dateLabel(key) {
+    if (!dateFromKey(key)) return '';
+    const value = new Date(`${key}T00:00:00Z`);
+    return `${value.getUTCMonth() + 1}/${value.getUTCDate()} 週${weekdays[value.getUTCDay()]}`;
+  }
+  function shiftDate(key, days) {
+    if (!dateFromKey(key) || !Number.isInteger(days)) return null;
+    const value = new Date(`${key}T00:00:00Z`);
+    value.setUTCDate(value.getUTCDate() + days);
+    return value.toISOString().slice(0, 10);
+  }
+  function nowSelection(value = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-GB', { timeZone:'Asia/Taipei', hour:'2-digit', minute:'2-digit', hourCycle:'h23' }).formatToParts(value);
+    const part = type => Number(parts.find(item => item.type === type).value);
+    const total = Math.ceil((part('hour') * 60 + part('minute')) / 15) * 15;
+    return { date:shiftDate(dateKey(value), Math.floor(total / 1440)), time:`${pad(Math.floor(total % 1440 / 60))}:${pad(total % 60)}` };
+  }
+  function calendarCells(month) {
+    if (typeof month !== 'string' || !/^\d{4}-\d{2}$/.test(month) || !dateFromKey(`${month}-01`)) return [];
+    const first = `${month}-01`;
+    const weekday = new Date(`${first}T00:00:00Z`).getUTCDay();
+    return Array.from({ length:42 }, (_, index) => shiftDate(first, index - weekday));
+  }
+  function moveGroup(order, group, targetIndex) {
+    if (typeof order !== 'string' || order.length !== 4 || [...order].sort().join('') !== 'ABCD' || !order.includes(group) || !Number.isInteger(targetIndex) || targetIndex < 0 || targetIndex > 3) return order;
+    const remaining = [...order].filter(value => value !== group);
+    remaining.splice(targetIndex, 0, group);
+    return remaining.join('');
+  }
+  const api = Object.freeze({ dateKey, dateFromKey, dateLabel, shiftDate, nowSelection, calendarCells, moveGroup });
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.ChantControls = api;
+})(globalThis);
+</script>
+<script id="roster-engine">(function (root) {
+  'use strict';
+  const GROUPS = ['A', 'B', 'C', 'D'];
+  const STORAGE_KEY = 'chant-scheduler:rosters:v1';
+  const DEFAULTS = { A:['淨耕', '淨光'], B:['淨元', '名淨'], C:['淨易', '淨諦'], D:['淨寶', '和淨'] };
+  const emptyGroups = () => Object.fromEntries(GROUPS.map(group => [group, []]));
+  const defaultGroups = () => Object.fromEntries(GROUPS.map(group => [group, [...DEFAULTS[group]]]));
+  const cleanNames = values => [...new Set(values.filter(value => typeof value === 'string').map(value => value.trim()).filter(Boolean))];
+  function parseNames(text) { return typeof text === 'string' ? cleanNames(text.split(/[\r\n,，、;；]+/)) : []; }
+  function normalizeGroups(value) {
+    return Object.fromEntries(GROUPS.map(group => [group, cleanNames(Array.isArray(value?.[group]) ? value[group] : [])]));
+  }
+  function defaultSelections(groups) {
+    const clean = normalizeGroups(groups);
+    return Object.fromEntries(GROUPS.map(group => [group, clean[group][0] || '']));
+  }
+  function reconcileSelections(groups, selections) {
+    const clean = normalizeGroups(groups);
+    return Object.fromEntries(GROUPS.map(group => [group, clean[group].includes(selections?.[group]) ? selections[group] : clean[group][0] || '']));
+  }
+  function loadPresets(storage) {
+    const fallback = status => ({ groups:defaultGroups(), status });
+    try {
+      const source = storage === undefined ? root.localStorage : storage;
+      if (typeof source?.getItem !== 'function') return fallback('unavailable');
+      const raw = source.getItem(STORAGE_KEY);
+      if (raw === null) return fallback('empty');
+      let value;
+      try { value = JSON.parse(raw); } catch { return fallback('invalid'); }
+      if (value?.version !== 1 || !GROUPS.every(group => Array.isArray(value.groups?.[group]))) return fallback('invalid');
+      const groups = normalizeGroups(value.groups);
+      if (GROUPS.some(group => !groups[group].length)) return fallback('invalid');
+      return { groups, status:'loaded' };
+    } catch { return fallback('unavailable'); }
+  }
+  function savePresets(groups, storage) {
+    const clean = normalizeGroups(groups);
+    if (GROUPS.some(group => !clean[group].length)) return false;
+    try {
+      const destination = storage === undefined ? root.localStorage : storage;
+      if (typeof destination?.setItem !== 'function') return false;
+      destination.setItem(STORAGE_KEY, JSON.stringify({ version:1, groups:clean }));
+      return true;
+    } catch { return false; }
+  }
+  const api = Object.freeze({ emptyGroups, defaultGroups, parseNames, normalizeGroups, defaultSelections, reconcileSelections, loadPresets, savePresets });
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.ChantRoster = api;
+})(globalThis);
+</script>
+<script id="clipboard-engine">(function (root) {
+  'use strict';
+  function slotDisplay(slot, members = {}) {
+    const pending = slot.status === 'pending';
+    const start = pending ? slot.originalStart : slot.start;
+    const end = pending ? slot.originalEnd : slot.end;
+    return {
+      start: Number.isFinite(start) ? start : null,
+      end: Number.isFinite(end) ? end : null,
+      person: pending ? '待協調' : typeof members?.[slot.group] === 'string' ? members[slot.group].trim() : ''
+    };
+  }
+  function groupSchedule(slots, baseDate) {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone:'Asia/Taipei', year:'numeric', month:'numeric', day:'numeric' }).formatToParts(baseDate);
+    const part = type => Number(parts.find(value => value.type === type).value);
+    const groups = [];
+    for (const slot of slots) {
+      let date = null, label = null;
+      const { start } = slotDisplay(slot);
+      if (start !== null) {
+        const value = new Date(Date.UTC(part('year'), part('month') - 1, part('day') + Math.floor(start / 1440)));
+        date = value.toISOString().slice(0, 10);
+        label = `${value.getUTCMonth() + 1}/${value.getUTCDate()}`;
+      }
+      if (!groups.length || groups.at(-1).date !== date) groups.push({ date, label, slots:[] });
+      groups.at(-1).slots.push(slot);
+    }
+    return groups;
+  }
+
+  function scheduleText(slots, clock, baseDate, members = {}) {
+    const groups = groupSchedule(slots, baseDate);
+    const firstDate = groups.find(group => group.label)?.label;
+    const lines = [firstDate ? `${firstDate} 助念排班表` : '助念排班表', ''];
+    for (const [index, group] of groups.entries()) {
+      if (index > 0 && group.label) lines.push('', group.label, '');
+      for (const slot of group.slots) {
+        const { start, end, person } = slotDisplay(slot, members);
+        const time = start !== null && end !== null ? `${clock(start)}-${clock(end)}` : '';
+        lines.push([`第${'一二三四'[slot.position - 1]}班`, `${slot.group}組`, person, time].filter(Boolean).join(' '));
+      }
+    }
+    return lines.join('\n');
+  }
+
+  async function copyText(text, environment = {}) {
+    const clipboard = environment.clipboard === undefined ? root.navigator?.clipboard : environment.clipboard;
+    const doc = environment.document === undefined ? root.document : environment.document;
+    if (!text) return false;
+    if (typeof clipboard?.writeText === 'function') {
+      try { await clipboard.writeText(text); return true; } catch { /* Try a user-gesture fallback. */ }
+    }
+    if (!doc?.body || typeof doc.execCommand !== 'function') return false;
+    let field;
+    const focused = doc.activeElement;
+    try {
+      field = doc.createElement('textarea');
+      field.value = text;
+      field.readOnly = true;
+      field.tabIndex = -1;
+      field.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;padding:0;border:0;opacity:0;font-size:16px;';
+      doc.body.appendChild(field);
+      field.focus({ preventScroll:true });
+      field.select();
+      field.setSelectionRange(0, text.length);
+      return doc.execCommand('copy') === true;
+    } catch {
+      return false;
+    } finally {
+      field?.remove();
+      focused?.focus?.({ preventScroll:true });
+    }
+  }
+
+  // Pointer-only bookkeeping: no preventDefault, capture or touch cancellation.
+  // Any multi-touch gesture cancels the tap candidate, preserving pinch zoom.
+  function createTapTracker(onDoubleTap) {
+    const active = new Map();
+    let multiple = false, previous = null;
+    function reset() { previous = null; }
+    function down(point) {
+      if (point.type !== 'touch') return;
+      active.set(point.id, { ...point, moved:false });
+      if (active.size > 1) { multiple = true; reset(); }
+    }
+    function move(point) {
+      const start = active.get(point.id);
+      if (start && Math.hypot(point.x - start.x, point.y - start.y) > 12) start.moved = true;
+    }
+    function up(point) {
+      if (point.type !== 'touch') return;
+      const start = active.get(point.id);
+      const valid = start && !multiple && !start.moved && start.inside && point.inside &&
+        point.time - start.time <= 450 && Math.hypot(point.x - start.x, point.y - start.y) <= 12;
+      active.delete(point.id);
+      if (!active.size) multiple = false;
+      if (!valid) { reset(); return; }
+      if (previous && point.time - previous.time <= 400 && Math.hypot(point.x - previous.x, point.y - previous.y) <= 28) {
+        reset();
+        onDoubleTap();
+      } else previous = point;
+    }
+    function cancel(point) {
+      active.delete(point.id);
+      reset();
+      if (!active.size) multiple = false;
+    }
+    return { down, move, up, cancel, reset };
+  }
+
+  const api = Object.freeze({ slotDisplay, groupSchedule, scheduleText, copyText, createTapTracker });
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.ChantClipboard = api;
+})(globalThis);
+</script>
+<script id="scheduler-ui">(() => {
+  'use strict';
+  const { plan, planInOrder, clock } = window.ChantScheduler;
+  const { slotDisplay, groupSchedule, scheduleText, copyText, createTapTracker } = window.ChantClipboard;
+  const { dateKey, dateFromKey, dateLabel, shiftDate, nowSelection, calendarCells, moveGroup } = window.ChantControls;
+  const { parseNames, defaultSelections, reconcileSelections, loadPresets, savePresets } = window.ChantRoster;
+  const get = id => document.getElementById(id);
+  const rows = get('schedule-rows'), status = get('result-status');
+  const timeButton = get('time-button'), dateButton = get('date-button'), groupsButton = get('groups-button');
+  const timeDialog = get('time-dialog'), dateDialog = get('date-dialog'), groupsDialog = get('groups-dialog'), rulesDialog = get('rules-dialog');
+  const membersDialog = get('members-dialog'), rosterDialog = get('roster-dialog');
+  const dialogs = [timeDialog, dateDialog, groupsDialog, rulesDialog, membersDialog, rosterDialog];
+  const groups = ['A', 'B', 'C', 'D'];
+  const loadedRoster = loadPresets();
+  let presets = loadedRoster.groups, selectedMembers = defaultSelections(presets), activeMemberGroup = 'A';
+  const pad = value => String(value).padStart(2, '0');
+  const initial = nowSelection(new Date());
+  let scheduleDate = dateFromKey(initial.date), selectedTime = initial.time, draftTimeDate = scheduleDate;
+  let draftCalendarDate = initial.date, calendarMonth = initial.date.slice(0, 7);
+  let missing = '', manualOrder = null, result;
+  let copyValue = '', copying = false, lastCopyAt = -Infinity, toastTimer, copyBlockedUntil = 0;
+  let drag = null, press = null, multiPointer = false;
+  const pointers = new Set();
+
+  function element(tag, text, className) {
+    const node = document.createElement(tag);
+    node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  }
+  function toast(text) {
+    const notice = get('copy-toast');
+    const surface = dialogs.find(dialog => dialog.open) || document.body;
+    if (notice.parentNode !== surface) surface.append(notice);
+    notice.textContent = text;
+    notice.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { notice.hidden = true; }, 2200);
+  }
+  function arrow(direction) {
+    return `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="${direction < 0 ? 'm6 14 6-6 6 6' : 'm6 10 6 6 6-6'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+  function render() {
+    result = manualOrder ? planInOrder(selectedTime, manualOrder, missing) : plan(selectedTime, missing);
+    if (result.status === 'invalid') {
+      manualOrder = null;
+      result = plan(selectedTime, missing);
+      toast('時段已變更，恢復自動排序。');
+    }
+    copyValue = scheduleText(result.slots, clock, scheduleDate, selectedMembers);
+    const selectedDate = dateLabel(dateKey(scheduleDate));
+    get('start-date').textContent = selectedDate;
+    get('start-time').textContent = selectedTime;
+    timeButton.setAttribute('aria-label', `開始時間 ${selectedTime}，選擇時間`);
+    dateButton.setAttribute('aria-label', `${selectedDate}，選擇日期`);
+    groupsButton.setAttribute('aria-label', `調整，不能來：${missing || '無'}${manualOrder ? '，手動排序' : ''}`);
+    groupsButton.classList.toggle('active', Boolean(missing || manualOrder));
+    get('missing-indicator').hidden = !missing;
+    get('missing-indicator').textContent = missing;
+    groupsDialog.querySelectorAll('.group-choice').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.group === missing)));
+    const nextDay = result.slots.some(slot => slot.status === 'scheduled' && slot.start >= 1440);
+    status.textContent = result.status === 'pending' ? '待協調' : nextDay ? '隔天續排' : '當天完成';
+    const fragment = document.createDocumentFragment();
+    for (const group of groupSchedule(result.slots, scheduleDate)) {
+      const section = element('div', '', 'schedule-day');
+      if (group.date) {
+        const heading = element('h3', '', 'day-heading');
+        const date = element('time', dateLabel(group.date));
+        date.dateTime = group.date;
+        heading.append(date);
+        section.append(heading);
+      }
+      const list = element('ol', '', 'day-rows');
+      list.start = group.slots[0].position;
+      for (const slot of group.slots) {
+        const display = slotDisplay(slot, selectedMembers);
+        const row = element('li', '', 'schedule-row glass');
+        row.dataset.group = slot.group;
+        row.dataset.status = slot.status;
+        row.title = `${slot.group} 組 ${display.person}，點選更換人員`;
+        const position = element('span', `第${'一二三四'[slot.position - 1]}班 `, 'sr-only');
+        const trigger = element('button', '', 'roster-trigger');
+        trigger.type = 'button';
+        trigger.dataset.group = slot.group;
+        trigger.setAttribute('aria-haspopup', 'dialog');
+        trigger.setAttribute('aria-controls', 'members-dialog');
+        trigger.setAttribute('aria-label', `${slot.group} 組 ${display.person}，更換出班人員`);
+        const content = element('span', '', 'row-content');
+        const team = element('span', slot.group, 'team');
+        team.append(element('small', '組'));
+        content.append(team, element('span', display.person, slot.status === 'pending' ? 'assigned-person pending-person' : 'assigned-person'));
+        if (display.start !== null && display.end !== null) content.append(element('span', clock(display.start), 'hours'), element('span', `至 ${clock(display.end)}`, 'sr-only'));
+        const handle = element('button', '', 'drag-handle');
+        handle.type = 'button';
+        handle.dataset.group = slot.group;
+        handle.setAttribute('aria-label', `移動 ${slot.group} 組，可按上下方向鍵調整順序`);
+        handle.setAttribute('aria-keyshortcuts', 'ArrowUp ArrowDown Home End');
+        handle.title = '拖曳調整順序';
+        handle.innerHTML = '<svg viewBox="0 0 18 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="5" r="1.5"/><circle cx="13" cy="5" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="13" cy="12" r="1.5"/><circle cx="5" cy="19" r="1.5"/><circle cx="13" cy="19" r="1.5"/></svg>';
+        trigger.append(content);
+        row.append(position, trigger, handle);
+        list.append(row);
+      }
+      section.append(list);
+      fragment.append(section);
+    }
+    rows.replaceChildren(fragment);
+    const controls = document.createDocumentFragment();
+    result.slots.forEach((slot, index) => {
+      const row = element('li', '', 'order-control');
+      row.append(element('span', `${slot.group} 組`, 'order-label'));
+      for (const direction of [-1, 1]) {
+        const button = element('button', '', 'icon-button');
+        button.type = 'button';
+        button.dataset.group = slot.group;
+        button.dataset.direction = direction;
+        button.disabled = direction < 0 ? index === 0 : index === 3;
+        button.setAttribute('aria-label', `${slot.group} 組${direction < 0 ? '往前' : '往後'}`);
+        button.innerHTML = arrow(direction);
+        row.append(button);
+      }
+      controls.append(row);
+    });
+    get('order-controls').replaceChildren(controls);
+    get('reset-order').disabled = !manualOrder;
+    get('live-status').textContent = `${selectedDate} ${selectedTime} 開始。` + copyValue.split('\n').slice(1).join('；');
+  }
+
+  function applyOrder(order) {
+    if (order === result.slots.map(slot => slot.group).join('')) return false;
+    const next = planInOrder(selectedTime, order, missing);
+    if (next.status === 'invalid') { toast(next.message); return false; }
+    manualOrder = order;
+    render();
+    toast('已調整順序');
+    return true;
+  }
+  function move(group, index) {
+    return applyOrder(moveGroup(result.slots.map(slot => slot.group).join(''), group, Math.max(0, Math.min(3, index))));
+  }
+  get('order-controls').addEventListener('click', event => {
+    const button = event.target.closest('button[data-direction]');
+    if (!button || button.disabled) return;
+    const group = button.dataset.group, direction = Number(button.dataset.direction);
+    const index = result.slots.findIndex(slot => slot.group === group);
+    if (move(group, index + direction)) {
+      const choices = [...get('order-controls').querySelectorAll(`[data-group="${group}"]`)];
+      (choices.find(choice => !choice.disabled && choice.dataset.direction === String(direction)) || choices.find(choice => !choice.disabled))?.focus({ preventScroll:true });
+    }
+  });
+  get('reset-order').addEventListener('click', () => { manualOrder = null; render(); toast('已恢復自動排序'); });
+
+  function openMembers(group) {
+    if (!groups.includes(group)) return;
+    activeMemberGroup = group;
+    get('members-title').textContent = `${group} 組人員`;
+    const choices = document.createDocumentFragment();
+    presets[group].forEach((name, index) => {
+      const button = element('button', name, 'member-choice');
+      button.type = 'button';
+      button.dataset.personIndex = index;
+      button.setAttribute('aria-pressed', String(name === selectedMembers[group]));
+      choices.append(button);
+    });
+    get('member-options').replaceChildren(choices);
+    membersDialog.showModal();
+    get('member-options').querySelector('[aria-pressed="true"]')?.focus({ preventScroll:true });
+  }
+  rows.addEventListener('click', event => {
+    if (event.target.closest('.drag-handle') || performance.now() < copyBlockedUntil || dialogs.some(dialog => dialog.open)) return;
+    const row = event.target.closest('.schedule-row');
+    if (row && rows.contains(row)) openMembers(row.dataset.group);
+  });
+  get('member-options').addEventListener('click', event => {
+    const button = event.target.closest('[data-person-index]');
+    if (!button) return;
+    const name = presets[activeMemberGroup][Number(button.dataset.personIndex)];
+    if (!name) return;
+    selectedMembers[activeMemberGroup] = name;
+    membersDialog.close();
+    render();
+    rows.querySelector(`.roster-trigger[data-group="${activeMemberGroup}"]`)?.focus({ preventScroll:true });
+  });
+  function openRosterEditor(group = 'A') {
+    groupsDialog.close();
+    membersDialog.close();
+    groups.forEach(key => { get(`roster-${key}`).value = presets[key].join('\n'); });
+    get('roster-error').hidden = true;
+    rosterDialog.showModal();
+    get(`roster-${group}`).focus({ preventScroll:true });
+  }
+  get('roster-button').addEventListener('click', () => openRosterEditor());
+  get('member-edit-button').addEventListener('click', () => openRosterEditor(activeMemberGroup));
+  get('save-roster').addEventListener('click', () => {
+    const next = Object.fromEntries(groups.map(group => [group, parseNames(get(`roster-${group}`).value)]));
+    const empty = groups.find(group => !next[group].length);
+    if (empty) {
+      get('roster-error').textContent = `${empty} 組至少輸入一位姓名。`;
+      get('roster-error').hidden = false;
+      get(`roster-${empty}`).focus();
+      return;
+    }
+    const saved = savePresets(next);
+    presets = next;
+    selectedMembers = reconcileSelections(presets, selectedMembers);
+    rosterDialog.close();
+    render();
+    toast(saved ? '名單已儲存' : '已套用；此瀏覽器無法保留名單。');
+  });
+
+  async function copySchedule() {
+    const now = performance.now();
+    if (copying || drag?.moving || now < copyBlockedUntil || now - lastCopyAt < 500) return;
+    copying = true;
+    lastCopyAt = now;
+    const success = await copyText(copyValue);
+    copying = false;
+    toast(success ? '已複製' : '複製失敗，請再試一次');
+  }
+  function isCopyTarget(target) {
+    if (!target?.closest || dialogs.some(dialog => dialog.open)) return false;
+    if (['button', 'input', 'textarea', 'a', 'dialog', '.schedule-row', '.clock-card', '.topbar'].some(selector => target.closest(selector))) return false;
+    return target === document.body || target === document.documentElement || target === rows || target === get('schedule-area') || rows.contains(target) || Boolean(target.closest('main'));
+  }
+  document.addEventListener('click', event => { if (isCopyTarget(event.target)) void copySchedule(); });
+  rows.addEventListener('keydown', event => {
+    const handle = event.target.closest('.drag-handle');
+    if (handle) {
+      const index = result.slots.findIndex(slot => slot.group === handle.dataset.group);
+      const target = { ArrowUp:index - 1, ArrowDown:index + 1, Home:0, End:3 }[event.key];
+      if (target !== undefined) {
+        event.preventDefault();
+        const group = handle.dataset.group;
+        if (move(group, target)) rows.querySelector(`.drag-handle[data-group="${group}"]`)?.focus({ preventScroll:true });
+      }
+      return;
+    }
+    if (event.target.closest('button')) return;
+    if (event.key === 'Enter' || ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c')) {
+      event.preventDefault();
+      void copySchedule();
+    }
+  });
+  rows.addEventListener('dragstart', event => event.preventDefault());
+  const taps = createTapTracker(() => { void copySchedule(); });
+  const point = event => ({ id:event.pointerId, type:event.pointerType, x:event.clientX, y:event.clientY, time:performance.now(), inside:isCopyTarget(event.target) });
+  function clearDropMarks() { rows.querySelectorAll('.schedule-row').forEach(row => row.classList.remove('drop-before', 'drop-after')); }
+  function updateDrag() {
+    if (!drag?.moving) return;
+    drag.row.style.transform = `translateY(${drag.y - drag.startY + window.scrollY - drag.scrollY}px)`;
+    const others = [...rows.querySelectorAll('.schedule-row')].filter(row => row !== drag.row);
+    drag.target = others.filter(row => {
+      const rect = row.getBoundingClientRect();
+      return drag.y > rect.top + rect.height / 2;
+    }).length;
+    clearDropMarks();
+    if (drag.target < others.length) others[drag.target].classList.add('drop-before');
+    else others.at(-1)?.classList.add('drop-after');
+  }
+  function scrollDrag() {
+    if (!drag?.moving) return;
+    const edge = 58;
+    const delta = drag.y < edge ? -Math.ceil((edge - drag.y) / 6) : drag.y > window.innerHeight - edge ? Math.ceil((drag.y - window.innerHeight + edge) / 6) : 0;
+    if (delta) { window.scrollBy(0, Math.max(-14, Math.min(14, delta))); updateDrag(); }
+    drag.frame = requestAnimationFrame(scrollDrag);
+  }
+  function endDrag(commit) {
+    if (!drag) return;
+    const current = drag;
+    drag = null;
+    cancelAnimationFrame(current.frame);
+    current.row.classList.remove('dragging');
+    current.row.style.transform = '';
+    clearDropMarks();
+    if (current.row.hasPointerCapture?.(current.id)) current.row.releasePointerCapture(current.id);
+    if (current.moving) {
+      copyBlockedUntil = performance.now() + 700;
+      taps.reset();
+      if (commit) move(current.group, current.target);
+    }
+  }
+  document.addEventListener('pointerdown', event => {
+    pointers.add(event.pointerId);
+    if (pointers.size === 1) press = { id:event.pointerId, x:event.clientX, y:event.clientY };
+    taps.down(point(event));
+    if (pointers.size > 1) {
+      multiPointer = true;
+      press = null;
+      copyBlockedUntil = performance.now() + 700;
+      endDrag(false);
+      taps.reset();
+      return;
+    }
+    const row = event.target.closest('.schedule-row');
+    if (!row || !rows.contains(row) || event.button !== 0) return;
+    const handle = event.target.closest('.drag-handle');
+    if (event.pointerType !== 'mouse' && !handle) return;
+    drag = { id:event.pointerId, group:row.dataset.group, row, startY:event.clientY, y:event.clientY, startX:event.clientX, scrollY:window.scrollY, target:result.slots.findIndex(slot => slot.group === row.dataset.group), moving:false, frame:0 };
+  }, { passive:true });
+  document.addEventListener('pointermove', event => {
+    if (press?.id === event.pointerId && Math.hypot(event.clientX - press.x, event.clientY - press.y) > 12) copyBlockedUntil = Math.max(copyBlockedUntil, performance.now() + 450);
+    taps.move(point(event));
+    if (!drag || drag.id !== event.pointerId || pointers.size !== 1) return;
+    drag.y = event.clientY;
+    if (!drag.moving && Math.hypot(event.clientY - drag.startY, event.clientX - drag.startX) > 8) {
+      drag.moving = true;
+      drag.row.classList.add('dragging');
+      drag.row.setPointerCapture?.(drag.id);
+      taps.reset();
+      drag.frame = requestAnimationFrame(scrollDrag);
+    }
+    updateDrag();
+  }, { passive:true });
+  document.addEventListener('pointerup', event => {
+    if (multiPointer) copyBlockedUntil = performance.now() + 700;
+    if (drag?.id === event.pointerId) {
+      drag.y = event.clientY;
+      updateDrag();
+      endDrag(true);
+    }
+    taps.up(point(event));
+    pointers.delete(event.pointerId);
+    if (press?.id === event.pointerId) press = null;
+    if (!pointers.size) multiPointer = false;
+  }, { passive:true });
+  document.addEventListener('pointercancel', event => {
+    copyBlockedUntil = performance.now() + 700;
+    if (drag?.id === event.pointerId) endDrag(false);
+    taps.cancel(point(event));
+    pointers.delete(event.pointerId);
+    if (press?.id === event.pointerId) press = null;
+    if (!pointers.size) multiPointer = false;
+  }, { passive:true });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') endDrag(false); });
+  window.addEventListener('blur', () => {
+    endDrag(false);
+    for (const id of pointers) taps.cancel({ id });
+    pointers.clear();
+    press = null;
+    multiPointer = false;
+    taps.reset();
+  });
+
+  function makeWheel(id, values) {
+    const wheel = get(id), rowHeight = 48;
+    let frame = 0;
+    const options = values.map((value, index) => {
+      const option = element('div', pad(value), 'wheel-option');
+      option.id = `${id}-${index}`;
+      option.setAttribute('role', 'option');
+      option.setAttribute('aria-selected', 'false');
+      option.addEventListener('click', () => set(value));
+      wheel.append(option);
+      return option;
+    });
+    const index = () => Math.max(0, Math.min(values.length - 1, Math.round(wheel.scrollTop / rowHeight)));
+    function sync() {
+      const selected = index();
+      options.forEach((option, value) => option.setAttribute('aria-selected', String(value === selected)));
+      wheel.setAttribute('aria-activedescendant', options[selected].id);
+    }
+    function set(value) { wheel.scrollTop = Math.max(0, values.indexOf(value)) * rowHeight; sync(); }
+    wheel.addEventListener('scroll', () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(sync); }, { passive:true });
+    wheel.addEventListener('keydown', event => {
+      const value = index();
+      const next = { ArrowDown:value + 1, ArrowUp:value - 1, PageDown:value + 5, PageUp:value - 5, Home:0, End:values.length - 1 }[event.key];
+      if (next !== undefined) { event.preventDefault(); set(values[Math.max(0, Math.min(values.length - 1, next))]); }
+    });
+    return { read:() => values[index()], set, wheel };
+  }
+  const hourWheel = makeWheel('hour-wheel', Array.from({ length:24 }, (_, index) => index));
+  const minuteWheel = makeWheel('minute-wheel', [0, 15, 30, 45]);
+  function setWheels(value) { const [hour, minute] = value.split(':').map(Number); hourWheel.set(hour); minuteWheel.set(minute); }
+  timeButton.addEventListener('click', () => {
+    draftTimeDate = scheduleDate;
+    timeDialog.showModal();
+    setWheels(selectedTime);
+    hourWheel.wheel.focus({ preventScroll:true });
+  });
+  get('now-button').addEventListener('click', () => {
+    const now = nowSelection(new Date());
+    draftTimeDate = dateFromKey(now.date);
+    setWheels(now.time);
+  });
+  get('confirm-time').addEventListener('click', () => {
+    scheduleDate = draftTimeDate;
+    selectedTime = `${pad(hourWheel.read())}:${pad(minuteWheel.read())}`;
+    render();
+    timeDialog.close();
+  });
+
+  function renderCalendar() {
+    const cells = calendarCells(calendarMonth), today = dateKey(new Date());
+    get('calendar-month').textContent = `${calendarMonth.slice(0, 4)} 年 ${Number(calendarMonth.slice(5))} 月`;
+    const focusDate = cells.includes(draftCalendarDate) ? draftCalendarDate : `${calendarMonth}-01`;
+    const fragment = document.createDocumentFragment();
+    for (const value of cells) {
+      const button = element('button', String(Number(value.slice(8))), 'calendar-day');
+      button.type = 'button';
+      button.dataset.date = value;
+      button.classList.toggle('outside', !value.startsWith(calendarMonth));
+      button.setAttribute('aria-label', `${value.slice(0, 4)} 年 ${dateLabel(value)}`);
+      button.setAttribute('aria-pressed', String(value === draftCalendarDate));
+      if (value === today) button.setAttribute('aria-current', 'date');
+      button.tabIndex = value === focusDate ? 0 : -1;
+      fragment.append(button);
+    }
+    get('calendar-grid').replaceChildren(fragment);
+    get('date-input').value = draftCalendarDate;
+    get('confirm-date').disabled = false;
+  }
+  function pickDate(value, focus = false) {
+    if (!dateFromKey(value)) return;
+    draftCalendarDate = value;
+    calendarMonth = value.slice(0, 7);
+    renderCalendar();
+    if (focus) get('calendar-grid').querySelector(`[data-date="${value}"]`)?.focus({ preventScroll:true });
+  }
+  dateButton.addEventListener('click', () => {
+    draftCalendarDate = dateKey(scheduleDate);
+    calendarMonth = draftCalendarDate.slice(0, 7);
+    renderCalendar();
+    dateDialog.showModal();
+    get('calendar-grid').querySelector('[tabindex="0"]')?.focus({ preventScroll:true });
+  });
+  get('calendar-grid').addEventListener('click', event => {
+    const button = event.target.closest('[data-date]');
+    if (button) pickDate(button.dataset.date, true);
+  });
+  get('calendar-grid').addEventListener('keydown', event => {
+    const button = event.target.closest('[data-date]');
+    if (!button) return;
+    const offset = { ArrowLeft:-1, ArrowRight:1, ArrowUp:-7, ArrowDown:7 }[event.key];
+    if (offset !== undefined) { event.preventDefault(); pickDate(shiftDate(button.dataset.date, offset), true); }
+  });
+  for (const [id, days] of [['previous-month', -1], ['next-month', 32]]) {
+    get(id).addEventListener('click', () => { calendarMonth = shiftDate(`${calendarMonth}-01`, days).slice(0, 7); renderCalendar(); });
+  }
+  get('date-input').addEventListener('input', event => { get('confirm-date').disabled = !dateFromKey(event.target.value); });
+  get('date-input').addEventListener('change', event => pickDate(event.target.value));
+  get('today-button').addEventListener('click', () => pickDate(dateKey(new Date()), true));
+  get('confirm-date').addEventListener('click', () => {
+    const value = dateFromKey(get('date-input').value);
+    if (!value) { get('date-input').reportValidity(); return; }
+    scheduleDate = value;
+    render();
+    dateDialog.close();
+  });
+
+  groupsButton.addEventListener('click', () => { groupsDialog.showModal(); groupsDialog.querySelector(`[data-group="${missing}"]`).focus({ preventScroll:true }); });
+  groupsDialog.querySelectorAll('.group-choice').forEach(button => button.addEventListener('click', () => { missing = button.dataset.group; manualOrder = null; render(); }));
+  get('rules-button').addEventListener('click', () => rulesDialog.showModal());
+  document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
+  dialogs.forEach(dialog => {
+    dialog.addEventListener('close', () => {
+      const notice = get('copy-toast');
+      if (notice.parentNode === dialog) document.body.append(notice);
+    });
+    dialog.addEventListener('click', event => {
+      const rect = dialog.getBoundingClientRect();
+      if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
+    });
+  });
+  render();
+})();
+</script>
+</body>
+</html>
